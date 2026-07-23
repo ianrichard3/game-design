@@ -18,26 +18,34 @@ morgan = require("morgan");
 
 BanIP = require(__dirname + "/banip.js");
 
-Session = class Session {
-  constructor(server, socket1) {
+Session = (function() {
+  function Session(server, socket1) {
     this.server = server;
     this.socket = socket1;
-    this.socket.on("message", (msg) => {
-      if (msg.length) {
-        return console.info("received ws message from " + this.socket.remoteAddress + ", length = " + msg.length);
-      }
-    });
-    this.socket.on("close", () => {});
-    this.socket.on("error", (err) => {
-      return console.error(err);
-    });
+    this.socket.on("message", (function(_this) {
+      return function(msg) {
+        if (msg.length) {
+          return console.info("received ws message from " + _this.socket.remoteAddress + ", length = " + msg.length);
+        }
+      };
+    })(this));
+    this.socket.on("close", (function(_this) {
+      return function() {};
+    })(this));
+    this.socket.on("error", (function(_this) {
+      return function(err) {
+        return console.error(err);
+      };
+    })(this));
   }
 
-};
+  return Session;
 
-this.DumbApp = class DumbApp {
-  constructor(config = {}, callback) {
-    this.config = config;
+})();
+
+this.DumbApp = (function() {
+  function DumbApp(config, callback) {
+    this.config = config != null ? config : {};
     this.callback = callback;
     process.chdir(__dirname);
     this.config = {
@@ -56,7 +64,7 @@ this.DumbApp = class DumbApp {
     this.create();
   }
 
-  create() {
+  DumbApp.prototype.create = function() {
     var accessLogStream, app;
     app = express();
     app.set('trust proxy', true);
@@ -64,63 +72,54 @@ this.DumbApp = class DumbApp {
       accessLogStream = fs.createWriteStream(path.join(__dirname, "../logs/access.log"), {
         flags: 'a'
       });
-      // setup the logger
       app.use(morgan('combined', {
         stream: accessLogStream
       }));
     }
-    app.use((req, res, next) => {
-      // if @ban_ip.isBanned( req.connection.remoteAddress )
-      //   if req.socket
-      //     req.socket.destroy()
-      //     return
-
-      //  return res.status(429).send "Too many requests"
-
-      // if req.path == "/"
-      //   @ban_ip.request( req.connection.remoteAddress )
-      console.info(req.get("host") + " : " + req.ip + " : " + req.path);
-      // console.info('IP réelle :', req.ip)
-      // console.info('X-Forwarded-For:', req.headers['x-forwarded-for'])
-      return res.status(200).send(req.path);
-    });
+    app.use((function(_this) {
+      return function(req, res, next) {
+        console.info(req.get("host") + " : " + req.ip + " : " + req.path);
+        return res.status(200).send(req.path);
+      };
+    })(this));
     if (this.PROD) {
       return require('greenlock-express').init({
         packageRoot: __dirname,
         configDir: "./greenlock.d",
         maintainerEmail: "contact@microstudio.dev",
         cluster: false
-      }).ready((glx) => {
-        this.httpserver = glx.httpsServer();
-        this.use_cache = true;
-        glx.serveApp(app);
-        return this.start(app);
-      });
+      }).ready((function(_this) {
+        return function(glx) {
+          _this.httpserver = glx.httpsServer();
+          _this.use_cache = true;
+          glx.serveApp(app);
+          return _this.start(app);
+        };
+      })(this));
     } else {
       this.httpserver = require("http").createServer(app).listen(this.PORT);
       this.use_cache = false;
       return this.start(app);
     }
-  }
+  };
 
-  start(app) {
+  DumbApp.prototype.start = function(app) {
     this.io = new WebSocket.Server({
       server: this.httpserver,
       maxPayload: 40000000
     });
-    this.io.on("connection", (socket, request) => {
-      // if @ban_ip.isBanned(request.connection.remoteAddress)
-      //   try
-      //     socket.close()
-      //   catch err
-      //   return
-      socket.request = request;
-      socket.remoteAddress = request.headers['x-forwarded-for'];
-      return new Session(this, socket);
-    });
+    this.io.on("connection", (function(_this) {
+      return function(socket, request) {
+        socket.request = request;
+        socket.remoteAddress = request.headers['x-forwarded-for'];
+        return new Session(_this, socket);
+      };
+    })(this));
     return console.info("MAX PAYLOAD = " + this.io.options.maxPayload);
-  }
+  };
 
-};
+  return DumbApp;
+
+})();
 
 module.exports = new this.DumbApp();

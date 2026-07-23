@@ -1,10 +1,10 @@
-this.Cleaner = class Cleaner {
-  constructor(content) {
+this.Cleaner = (function() {
+  function Cleaner(content) {
     this.content = content;
     this.start();
   }
 
-  start() {
+  Cleaner.prototype.start = function() {
     this.stop();
     this.users = Object.keys(this.content.users);
     this.index = 0;
@@ -13,33 +13,35 @@ this.Cleaner = class Cleaner {
     this.deleted = 0;
     this.deleted_projects = 0;
     this.deleted_users = 0;
-    this.interval = setInterval((() => {
-      return this.processOne();
-    }), 1000);
+    this.interval = setInterval(((function(_this) {
+      return function() {
+        return _this.processOne();
+      };
+    })(this)), 1000);
     return console.info("USER LIMIT: " + this.user_limit);
-  }
+  };
 
-  stop() {
+  Cleaner.prototype.stop = function() {
     if (this.interval != null) {
       return clearInterval(this.interval);
     }
-  }
+  };
 
-  deleteGuest(user) {
+  Cleaner.prototype.deleteGuest = function(user) {
     if ((user != null) && user.flags.guest) {
-      console.info(`Deleting guest user ${user.id} - ${user.nick} last active: ` + new Date(user.last_active).toString());
-      return user.delete();
+      console.info(("Deleting guest user " + user.id + " - " + user.nick + " last active: ") + new Date(user.last_active).toString());
+      return user["delete"]();
     }
-  }
+  };
 
-  deleteUser(user) {
+  Cleaner.prototype.deleteUser = function(user) {
     if ((user != null) && !user.flags.validated && user.last_active < this.user_limit) {
-      console.info(`Deleting inactive, unvalidated user ${user.id} - ${user.nick} last active: ` + new Date(user.last_active).toString());
-      return user.delete();
+      console.info(("Deleting inactive, unvalidated user " + user.id + " - " + user.nick + " last active: ") + new Date(user.last_active).toString());
+      return user["delete"]();
     }
-  }
+  };
 
-  processOne() {
+  Cleaner.prototype.processOne = function() {
     var err, has_public, key, project, user, userid;
     while (this.index < this.users.length) {
       userid = this.users[this.index++];
@@ -59,12 +61,10 @@ this.Cleaner = class Cleaner {
           }
         } else if (user != null) {
           if (user.last_active < this.user_limit && !user.flags.validated) {
-            
-            //console.info "user abandoned: " + user.nick
             has_public = false;
             for (key in user.projects) {
               project = user.projects[key];
-              if (project.public) {
+              if (project["public"]) {
                 has_public = true;
               }
             }
@@ -90,8 +90,10 @@ this.Cleaner = class Cleaner {
       console.info("Deleted projects: " + this.deleted_projects);
       return console.info("Deleted inactive, unvalidated users: " + this.deleted_users);
     }
-  }
+  };
 
-};
+  return Cleaner;
+
+})();
 
 module.exports = this.Cleaner;

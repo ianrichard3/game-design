@@ -2,8 +2,8 @@ var UserProgress;
 
 UserProgress = require(__dirname + "/../gamify/userprogress.js");
 
-this.User = class User {
-  constructor(content, record) {
+this.User = (function() {
+  function User(content, record) {
     var data;
     this.content = content;
     this.record = record;
@@ -41,16 +41,16 @@ this.User = class User {
     }
   }
 
-  checkStringField(field, size) {
+  User.prototype.checkStringField = function(field, size) {
     if (typeof this[field] === "string") {
       if (this[field].length > size) {
         console.info("field " + field + " oversize: " + this[field].length);
         return this.set(field, this[field].substring(0, size));
       }
     }
-  }
+  };
 
-  updateTier() {
+  User.prototype.updateTier = function() {
     switch (this.flags.tier) {
       case "pixel_master":
         this.max_storage = 200000000;
@@ -76,49 +76,49 @@ this.User = class User {
           return this.early_access = false;
         }
     }
-  }
+  };
 
-  addListener(listener) {
+  User.prototype.addListener = function(listener) {
     if (this.listeners.indexOf(listener) < 0) {
       return this.listeners.push(listener);
     }
-  }
+  };
 
-  removeListener(listener) {
+  User.prototype.removeListener = function(listener) {
     var index;
     index = this.listeners.indexOf(listener);
     if (index >= 0) {
       return this.listeners.splice(index, 1);
     }
-  }
+  };
 
-  addProject(project) {
+  User.prototype.addProject = function(project) {
     return this.projects[project.id] = project;
-  }
+  };
 
-  listProjects() {
+  User.prototype.listProjects = function() {
     var key, list;
     list = [];
     for (key in this.projects) {
       list.push(this.projects[key]);
     }
     return list;
-  }
+  };
 
-  listPublicProjects() {
+  User.prototype.listPublicProjects = function() {
     var key, list, project, ref;
     list = [];
     ref = this.projects;
     for (key in ref) {
       project = ref[key];
-      if (project.public) {
+      if (project["public"]) {
         list.push(project);
       }
     }
     return list;
-  }
+  };
 
-  getTotalSize() {
+  User.prototype.getTotalSize = function() {
     var key, project, ref, size;
     size = 0;
     ref = this.projects;
@@ -127,17 +127,17 @@ this.User = class User {
       size += project.getSize();
     }
     return size;
-  }
+  };
 
-  addProjectLink(link) {
+  User.prototype.addProjectLink = function(link) {
     return this.project_links.push(link);
-  }
+  };
 
-  listProjectLinks() {
+  User.prototype.listProjectLinks = function() {
     return this.project_links;
-  }
+  };
 
-  removeLink(projectid) {
+  User.prototype.removeLink = function(projectid) {
     var i, j, len, link, ref;
     ref = this.project_links;
     for (i = j = 0, len = ref.length; j < len; i = ++j) {
@@ -147,13 +147,13 @@ this.User = class User {
         return;
       }
     }
-  }
+  };
 
-  findProject(id) {
+  User.prototype.findProject = function(id) {
     return this.projects[id];
-  }
+  };
 
-  findProjectBySlug(slug) {
+  User.prototype.findProjectBySlug = function(slug) {
     var key, p;
     for (key in this.projects) {
       p = this.projects[key];
@@ -162,64 +162,60 @@ this.User = class User {
       }
     }
     return null;
-  }
+  };
 
-  deleteProject(project) {
+  User.prototype.deleteProject = function(project) {
     delete this.projects[project.id];
-    return project.delete();
-  }
+    return project["delete"]();
+  };
 
-  set(prop, value) {
+  User.prototype.set = function(prop, value) {
     var data;
     data = this.record.get();
     data[prop] = value;
     this.record.set(data);
     return this[prop] = value;
-  }
+  };
 
-  addLike(id) {
+  User.prototype.addLike = function(id) {
     if (this.likes.indexOf(id) < 0) {
       this.likes.push(id);
       return this.set("likes", this.likes);
     }
-  }
+  };
 
-  removeLike(id) {
+  User.prototype.removeLike = function(id) {
     var index;
     index = this.likes.indexOf(id);
     if (index >= 0) {
       this.likes.splice(index, 1);
       return this.set("likes", this.likes);
     }
-  }
+  };
 
-  isLiked(id) {
+  User.prototype.isLiked = function(id) {
     return this.likes.indexOf(id) >= 0;
-  }
+  };
 
-  // Flags reference
-  // * validated (e-mail validated)
-  // * deleted (account deleted)
-  // *
-  setFlag(flag, value) {
+  User.prototype.setFlag = function(flag, value) {
     if (value) {
       this.flags[flag] = value;
     } else {
       delete this.flags[flag];
     }
     return this.set("flags", this.flags);
-  }
+  };
 
-  setSetting(setting, value) {
+  User.prototype.setSetting = function(setting, value) {
     if (value) {
       this.settings[setting] = value;
     } else {
       delete this.settings[setting];
     }
     return this.set("settings", this.settings);
-  }
+  };
 
-  createValidationToken() {
+  User.prototype.createValidationToken = function() {
     var i, j, map, token;
     map = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     token = "";
@@ -228,34 +224,34 @@ this.User = class User {
     }
     this.record.setField("validation_token", token);
     return token;
-  }
+  };
 
-  getValidationToken() {
+  User.prototype.getValidationToken = function() {
     var code;
     code = this.record.getField("validation_token");
     if (code == null) {
       code = this.createValidationToken();
     }
     return code;
-  }
+  };
 
-  resetValidationToken() {
+  User.prototype.resetValidationToken = function() {
     return this.record.setField("validation_token");
-  }
+  };
 
-  canPublish() {
+  User.prototype.canPublish = function() {
     return this.flags.validated && !this.flags.deleted && !this.flags.banned;
-  }
+  };
 
-  showPublicStuff() {
+  User.prototype.showPublicStuff = function() {
     return this.flags.validated && !this.flags.deleted && !this.flags.banned && !this.flags.censored;
-  }
+  };
 
-  notify(text) {
+  User.prototype.notify = function(text) {
     return this.notifications.push(text);
-  }
+  };
 
-  delete() {
+  User.prototype["delete"] = function() {
     var folder, key, project, ref;
     this.flags.deleted = true;
     this.record.set({
@@ -267,13 +263,15 @@ this.User = class User {
     ref = this.projects;
     for (key in ref) {
       project = ref[key];
-      project.delete();
+      project["delete"]();
     }
     this.projects = {};
-    folder = `${this.id}`;
+    folder = "" + this.id;
     this.content.files.deleteFolder(folder);
-  }
+  };
 
-};
+  return User;
+
+})();
 
 module.exports = this.User;

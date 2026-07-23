@@ -4,15 +4,15 @@ fs = require('fs');
 
 path = require('path');
 
-KnownIP = class KnownIP {
-  constructor(banip, ip1) {
+KnownIP = (function() {
+  function KnownIP(banip, ip1) {
     this.banip = banip;
     this.ip = ip1;
     this.last_requests = [0, 0, 0, 0];
     this.index = 0;
   }
 
-  request() {
+  KnownIP.prototype.request = function() {
     var dt, time;
     time = Date.now();
     this.last_requests[this.index] = time;
@@ -21,19 +21,21 @@ KnownIP = class KnownIP {
     if (dt < 500) {
       return this.ban();
     }
-  }
+  };
 
-  ban() {
+  KnownIP.prototype.ban = function() {
     this.banip.banIP(this.ip);
     return this.banned = true;
-  }
+  };
 
-};
+  return KnownIP;
+
+})();
 
 BLOCKED_IPS_FILE = path.join(__dirname, 'blocked_ips.txt');
 
-this.BanIP = class BanIP {
-  constructor(server) {
+this.BanIP = (function() {
+  function BanIP(server) {
     var i, ip, len, lines;
     this.server = server;
     this.known_ips = {};
@@ -50,7 +52,7 @@ this.BanIP = class BanIP {
     });
   }
 
-  banIP(ip) {
+  BanIP.prototype.banIP = function(ip) {
     var err;
     if (!ip) {
       return;
@@ -61,16 +63,16 @@ this.BanIP = class BanIP {
     } catch (error) {
       err = error;
     }
-  }
+  };
 
-  isBanned(ip) {
+  BanIP.prototype.isBanned = function(ip) {
     if (!ip) {
       return false;
     }
     return this.banned[ip] || false;
-  }
+  };
 
-  request(ip) {
+  BanIP.prototype.request = function(ip) {
     var knownip;
     if (!ip) {
       return;
@@ -80,8 +82,10 @@ this.BanIP = class BanIP {
       knownip = this.known_ips[ip] = new KnownIP(this, ip);
     }
     return knownip.request();
-  }
+  };
 
-};
+  return BanIP;
+
+})();
 
 module.exports = this.BanIP;

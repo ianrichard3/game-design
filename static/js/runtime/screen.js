@@ -1,5 +1,5 @@
-this.Screen = class Screen {
-  constructor(runtime) {
+this.Screen = (function() {
+  function Screen(runtime) {
     this.runtime = runtime;
     this.canvas = document.createElement("canvas");
     this.canvas.width = 1080;
@@ -35,33 +35,38 @@ this.Screen = class Screen {
     this.loadFont(this.font);
     this.initContext();
     this.cursor = "default";
-    this.canvas.addEventListener("mousemove", () => {
-      this.last_mouse_move = Date.now();
-      if (this.cursor !== "default" && this.cursor_visibility === "auto") {
-        this.cursor = "default";
-        return this.canvas.style.cursor = "default";
-      }
-    });
-    // when the context is lost and then restored, base transform needs to be reinstated.
-    this.canvas.addEventListener("contextrestored", () => {
-      return this.initContext();
-    });
-    setInterval((() => {
-      return this.checkMouseCursor();
-    }), 1000);
+    this.canvas.addEventListener("mousemove", (function(_this) {
+      return function() {
+        _this.last_mouse_move = Date.now();
+        if (_this.cursor !== "default" && _this.cursor_visibility === "auto") {
+          _this.cursor = "default";
+          return _this.canvas.style.cursor = "default";
+        }
+      };
+    })(this));
+    this.canvas.addEventListener("contextrestored", (function(_this) {
+      return function() {
+        return _this.initContext();
+      };
+    })(this));
+    setInterval(((function(_this) {
+      return function() {
+        return _this.checkMouseCursor();
+      };
+    })(this)), 1000);
     this.cursor_visibility = "auto";
   }
 
-  checkMouseCursor() {
+  Screen.prototype.checkMouseCursor = function() {
     if (Date.now() > this.last_mouse_move + 4000 && this.cursor_visibility === "auto") {
       if (this.cursor !== "none") {
         this.cursor = "none";
         return this.canvas.style.cursor = "none";
       }
     }
-  }
+  };
 
-  setCursorVisible(visible) {
+  Screen.prototype.setCursorVisible = function(visible) {
     this.cursor_visibility = visible;
     if (visible) {
       this.cursor = "default";
@@ -70,9 +75,9 @@ this.Screen = class Screen {
       this.cursor = "none";
       return this.canvas.style.cursor = "none";
     }
-  }
+  };
 
-  initContext() {
+  Screen.prototype.initContext = function() {
     var b, c, j, len1, ratio, ref;
     c = this.canvas.getContext("2d", {
       alpha: false
@@ -88,12 +93,6 @@ this.Screen = class Screen {
     this.context.scale(ratio, ratio);
     this.width = this.canvas.width / ratio;
     this.height = this.canvas.height / ratio;
-    // @translation_x = 0
-    // @translation_y = 0
-    // @rotation = 0
-    // @scale_x = 1
-    // @scale_y = 1
-    // @screen_transform = false
     this.context.lineCap = "round";
     this.blending = {
       normal: "source-over",
@@ -104,15 +103,15 @@ this.Screen = class Screen {
       b = ref[j];
       this.blending[b] = b;
     }
-  }
+  };
 
-  getInterface() {
+  Screen.prototype.getInterface = function() {
     var screen;
-    if (this.interface != null) {
-      return this.interface;
+    if (this["interface"] != null) {
+      return this["interface"];
     }
     screen = this;
-    return this.interface = {
+    return this["interface"] = {
       width: this.width,
       height: this.height,
       clear: function(color) {
@@ -239,14 +238,14 @@ this.Screen = class Screen {
         return screen.isFontReady(font);
       }
     };
-  }
+  };
 
-  updateInterface() {
-    this.interface.width = this.width;
-    return this.interface.height = this.height;
-  }
+  Screen.prototype.updateInterface = function() {
+    this["interface"].width = this.width;
+    return this["interface"].height = this.height;
+  };
 
-  clear(color) {
+  Screen.prototype.clear = function(color) {
     var blending_save, c, s;
     c = this.context.fillStyle;
     s = this.context.strokeStyle;
@@ -262,18 +261,18 @@ this.Screen = class Screen {
     this.context.fillStyle = c;
     this.context.strokeStyle = s;
     return this.context.globalCompositeOperation = blending_save;
-  }
+  };
 
-  initDraw() {
+  Screen.prototype.initDraw = function() {
     this.alpha = 1;
     this.line_width = 1;
     if (this.supersampling !== this.previous_supersampling) {
       this.resize();
       return this.previous_supersampling = this.supersampling;
     }
-  }
+  };
 
-  setColor(color) {
+  Screen.prototype.setColor = function(color) {
     var b, c, g, r;
     if (color == null) {
       return;
@@ -293,79 +292,85 @@ this.Screen = class Screen {
       this.context.fillStyle = color;
       return this.context.strokeStyle = color;
     }
-  }
+  };
 
-  setAlpha(alpha1) {
+  Screen.prototype.setAlpha = function(alpha1) {
     this.alpha = alpha1;
-  }
+  };
 
-  setPixelated(pixelated1) {
+  Screen.prototype.setPixelated = function(pixelated1) {
     this.pixelated = pixelated1;
-  }
+  };
 
-  setBlending(blending) {
+  Screen.prototype.setBlending = function(blending) {
     blending = this.blending[blending || "normal"] || "source-over";
     return this.context.globalCompositeOperation = blending;
-  }
+  };
 
-  setLineWidth(line_width) {
+  Screen.prototype.setLineWidth = function(line_width) {
     this.line_width = line_width;
-  }
+  };
 
-  setLineDash(dash) {
+  Screen.prototype.setLineDash = function(dash) {
     if (!Array.isArray(dash)) {
       return this.context.setLineDash([]);
     } else {
       return this.context.setLineDash(dash);
     }
-  }
+  };
 
-  setLinearGradient(x1, y1, x2, y2, c1, c2) {
+  Screen.prototype.setLinearGradient = function(x1, y1, x2, y2, c1, c2) {
     var grd;
     grd = this.context.createLinearGradient(x1, -y1, x2, -y2);
     grd.addColorStop(0, c1);
     grd.addColorStop(1, c2);
     this.context.fillStyle = grd;
     return this.context.strokeStyle = grd;
-  }
+  };
 
-  setRadialGradient(x, y, radius, c1, c2) {
+  Screen.prototype.setRadialGradient = function(x, y, radius, c1, c2) {
     var grd;
     grd = this.context.createRadialGradient(x, -y, 0, x, -y, radius);
     grd.addColorStop(0, c1);
     grd.addColorStop(1, c2);
     this.context.fillStyle = grd;
     return this.context.strokeStyle = grd;
-  }
+  };
 
-  setFont(font) {
+  Screen.prototype.setFont = function(font) {
     this.font = font || "Verdana";
     return this.loadFont(this.font);
-  }
+  };
 
-  loadFont(font = "BitCell") {
+  Screen.prototype.loadFont = function(font) {
     var err;
+    if (font == null) {
+      font = "BitCell";
+    }
     if (!this.font_load_requested[font]) {
       this.font_load_requested[font] = true;
       try {
         if ((document.fonts != null) && (document.fonts.load != null)) {
-          document.fonts.load(`16pt ${font}`);
+          document.fonts.load("16pt " + font);
         }
       } catch (error) {
         err = error;
       }
     }
     return 1;
-  }
+  };
 
-  isFontReady(font = this.font) {
+  Screen.prototype.isFontReady = function(font) {
     var err, res;
+    if (font == null) {
+      font = this.font;
+    }
     if (this.font_loaded[font]) {
       return 1;
     }
     try {
       if ((document.fonts != null) && (document.fonts.check != null)) {
-        res = document.fonts.check(`16pt ${font}`);
+        res = document.fonts.check("16pt " + font);
         if (res) {
           this.font_loaded[font] = res;
         }
@@ -379,9 +384,9 @@ this.Screen = class Screen {
       err = error;
     }
     return 1;
-  }
+  };
 
-  setTranslation(translation_x, translation_y) {
+  Screen.prototype.setTranslation = function(translation_x, translation_y) {
     this.translation_x = translation_x;
     this.translation_y = translation_y;
     if (!isFinite(this.translation_x)) {
@@ -391,9 +396,9 @@ this.Screen = class Screen {
       this.translation_y = 0;
     }
     return this.updateScreenTransform();
-  }
+  };
 
-  setScale(scale_x, scale_y) {
+  Screen.prototype.setScale = function(scale_x, scale_y) {
     this.scale_x = scale_x;
     this.scale_y = scale_y;
     if (!isFinite(this.scale_x) || this.scale_x === 0) {
@@ -403,21 +408,21 @@ this.Screen = class Screen {
       this.scale_y = 1;
     }
     return this.updateScreenTransform();
-  }
+  };
 
-  setRotation(rotation1) {
+  Screen.prototype.setRotation = function(rotation1) {
     this.rotation = rotation1;
     if (!isFinite(this.rotation)) {
       this.rotation = 0;
     }
     return this.updateScreenTransform();
-  }
+  };
 
-  updateScreenTransform() {
+  Screen.prototype.updateScreenTransform = function() {
     return this.screen_transform = this.translation_x !== 0 || this.translation_y !== 0 || this.scale_x !== 1 || this.scale_y !== 1 || this.rotation !== 0;
-  }
+  };
 
-  setDrawAnchor(anchor_x, anchor_y) {
+  Screen.prototype.setDrawAnchor = function(anchor_x, anchor_y) {
     this.anchor_x = anchor_x;
     this.anchor_y = anchor_y;
     if (typeof this.anchor_x !== "number") {
@@ -426,19 +431,22 @@ this.Screen = class Screen {
     if (typeof this.anchor_y !== "number") {
       return this.anchor_y = 0;
     }
-  }
+  };
 
-  setDrawRotation(object_rotation) {
+  Screen.prototype.setDrawRotation = function(object_rotation) {
     this.object_rotation = object_rotation;
-  }
+  };
 
-  setDrawScale(object_scale_x, object_scale_y = this.object_scale_x) {
+  Screen.prototype.setDrawScale = function(object_scale_x, object_scale_y) {
     this.object_scale_x = object_scale_x;
-    this.object_scale_y = object_scale_y;
-  }
+    this.object_scale_y = object_scale_y != null ? object_scale_y : this.object_scale_x;
+  };
 
-  initDrawOp(x, y, object_transform = true) {
+  Screen.prototype.initDrawOp = function(x, y, object_transform) {
     var res;
+    if (object_transform == null) {
+      object_transform = true;
+    }
     res = false;
     if (this.screen_transform) {
       this.context.save();
@@ -462,19 +470,13 @@ this.Screen = class Screen {
       }
     }
     return res;
-  }
+  };
 
-  closeDrawOp(x, y) {
-    //if @object_scale_x != 1 or @object_scale_y != 1
-    //  @context.scale 1/@object_scale_x,1/@object_scale_y
-
-    //if @object_rotation != 0
-    //  @context.rotate -@object_rotation/180*Math.PI
-    //@context.translate -x,-y
+  Screen.prototype.closeDrawOp = function(x, y) {
     return this.context.restore();
-  }
+  };
 
-  fillRect(x, y, w, h, color) {
+  Screen.prototype.fillRect = function(x, y, w, h, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     if (this.initDrawOp(x, -y)) {
@@ -483,9 +485,12 @@ this.Screen = class Screen {
     } else {
       return this.context.fillRect(x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h);
     }
-  }
+  };
 
-  fillRoundRect(x, y, w, h, round = 10, color) {
+  Screen.prototype.fillRoundRect = function(x, y, w, h, round, color) {
+    if (round == null) {
+      round = 10;
+    }
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     if (this.initDrawOp(x, -y)) {
@@ -494,9 +499,9 @@ this.Screen = class Screen {
     } else {
       return this.context.fillRoundRect(x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h, round);
     }
-  }
+  };
 
-  fillRound(x, y, w, h, color) {
+  Screen.prototype.fillRound = function(x, y, w, h, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     w = Math.abs(w);
@@ -511,9 +516,9 @@ this.Screen = class Screen {
       this.context.ellipse(x - this.anchor_x * w / 2, -y + this.anchor_y * h / 2, w / 2, h / 2, 0, 0, Math.PI * 2, false);
       return this.context.fill();
     }
-  }
+  };
 
-  drawRect(x, y, w, h, color) {
+  Screen.prototype.drawRect = function(x, y, w, h, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     this.context.lineWidth = this.line_width;
@@ -523,9 +528,12 @@ this.Screen = class Screen {
     } else {
       return this.context.strokeRect(x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h);
     }
-  }
+  };
 
-  drawRoundRect(x, y, w, h, round = 10, color) {
+  Screen.prototype.drawRoundRect = function(x, y, w, h, round, color) {
+    if (round == null) {
+      round = 10;
+    }
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     this.context.lineWidth = this.line_width;
@@ -535,9 +543,9 @@ this.Screen = class Screen {
     } else {
       return this.context.strokeRoundRect(x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h, round);
     }
-  }
+  };
 
-  drawRound(x, y, w, h, color) {
+  Screen.prototype.drawRound = function(x, y, w, h, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     this.context.lineWidth = this.line_width;
@@ -553,9 +561,9 @@ this.Screen = class Screen {
       this.context.ellipse(x - this.anchor_x * w / 2, -y + this.anchor_y * h / 2, w / 2, h / 2, 0, 0, Math.PI * 2, false);
       return this.context.stroke();
     }
-  }
+  };
 
-  drawLine(x1, y1, x2, y2, color) {
+  Screen.prototype.drawLine = function(x1, y1, x2, y2, color) {
     var transform;
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
@@ -568,9 +576,9 @@ this.Screen = class Screen {
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  drawPolyline(args) {
+  Screen.prototype.drawPolyline = function(args) {
     var i, j, len, ref, transform;
     if (args.length > 0 && args.length % 2 === 1 && typeof args[args.length - 1] === "string") {
       this.setColor(args[args.length - 1]);
@@ -590,16 +598,16 @@ this.Screen = class Screen {
     transform = this.initDrawOp(0, 0, false);
     this.context.beginPath();
     this.context.moveTo(args[0], -args[1]);
-    for (i = j = 1, ref = len - 1; (1 <= ref ? j <= ref : j >= ref); i = 1 <= ref ? ++j : --j) {
+    for (i = j = 1, ref = len - 1; 1 <= ref ? j <= ref : j >= ref; i = 1 <= ref ? ++j : --j) {
       this.context.lineTo(args[i * 2], -args[i * 2 + 1]);
     }
     this.context.stroke();
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  drawPolygon(args) {
+  Screen.prototype.drawPolygon = function(args) {
     var i, j, len, ref, transform;
     if (args.length > 0 && args.length % 2 === 1 && typeof args[args.length - 1] === "string") {
       this.setColor(args[args.length - 1]);
@@ -619,7 +627,7 @@ this.Screen = class Screen {
     transform = this.initDrawOp(0, 0, false);
     this.context.beginPath();
     this.context.moveTo(args[0], -args[1]);
-    for (i = j = 1, ref = len - 1; (1 <= ref ? j <= ref : j >= ref); i = 1 <= ref ? ++j : --j) {
+    for (i = j = 1, ref = len - 1; 1 <= ref ? j <= ref : j >= ref; i = 1 <= ref ? ++j : --j) {
       this.context.lineTo(args[i * 2], -args[i * 2 + 1]);
     }
     this.context.closePath();
@@ -627,9 +635,9 @@ this.Screen = class Screen {
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  fillPolygon(args) {
+  Screen.prototype.fillPolygon = function(args) {
     var i, j, len, ref, transform;
     if (args.length > 0 && args.length % 2 === 1 && typeof args[args.length - 1] === "string") {
       this.setColor(args[args.length - 1]);
@@ -649,16 +657,16 @@ this.Screen = class Screen {
     transform = this.initDrawOp(0, 0, false);
     this.context.beginPath();
     this.context.moveTo(args[0], -args[1]);
-    for (i = j = 1, ref = len - 1; (1 <= ref ? j <= ref : j >= ref); i = 1 <= ref ? ++j : --j) {
+    for (i = j = 1, ref = len - 1; 1 <= ref ? j <= ref : j >= ref; i = 1 <= ref ? ++j : --j) {
       this.context.lineTo(args[i * 2], -args[i * 2 + 1]);
     }
     this.context.fill();
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  drawQuadCurve(args) {
+  Screen.prototype.drawQuadCurve = function(args) {
     var index, len, transform;
     if (args.length > 0 && args.length % 2 === 1 && typeof args[args.length - 1] === "string") {
       this.setColor(args[args.length - 1]);
@@ -687,9 +695,9 @@ this.Screen = class Screen {
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  drawBezierCurve(args) {
+  Screen.prototype.drawBezierCurve = function(args) {
     var index, len, transform;
     if (args.length > 0 && args.length % 2 === 1 && typeof args[args.length - 1] === "string") {
       this.setColor(args[args.length - 1]);
@@ -718,9 +726,9 @@ this.Screen = class Screen {
     if (transform) {
       return this.closeDrawOp();
     }
-  }
+  };
 
-  drawArc(x, y, radius, angle1, angle2, ccw, color) {
+  Screen.prototype.drawArc = function(x, y, radius, angle1, angle2, ccw, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     this.context.lineWidth = this.line_width;
@@ -734,9 +742,9 @@ this.Screen = class Screen {
       this.context.arc(x, -y, radius, -angle1 / 180 * Math.PI, -angle2 / 180 * Math.PI, ccw);
       return this.context.stroke();
     }
-  }
+  };
 
-  fillArc(x, y, radius, angle1, angle2, ccw, color) {
+  Screen.prototype.fillArc = function(x, y, radius, angle1, angle2, ccw, color) {
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
     this.context.lineWidth = this.line_width;
@@ -750,18 +758,18 @@ this.Screen = class Screen {
       this.context.arc(x, -y, radius, -angle1 / 180 * Math.PI, -angle2 / 180 * Math.PI, ccw);
       return this.context.fill();
     }
-  }
+  };
 
-  textWidth(text, size) {
-    this.context.font = `${size}pt ${this.font}`;
+  Screen.prototype.textWidth = function(text, size) {
+    this.context.font = size + "pt " + this.font;
     return this.context.measureText(text).width;
-  }
+  };
 
-  drawText(text, x, y, size, color) {
+  Screen.prototype.drawText = function(text, x, y, size, color) {
     var h, w;
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
-    this.context.font = `${size}pt ${this.font}`;
+    this.context.font = size + "pt " + this.font;
     this.context.textAlign = "center";
     this.context.textBaseline = "middle";
     w = this.context.measureText(text).width;
@@ -772,13 +780,13 @@ this.Screen = class Screen {
     } else {
       return this.context.fillText(text, x - this.anchor_x * w / 2, -y + this.anchor_y * h / 2);
     }
-  }
+  };
 
-  drawTextOutline(text, x, y, size, color) {
+  Screen.prototype.drawTextOutline = function(text, x, y, size, color) {
     var h, w;
     this.setColor(color);
     this.context.globalAlpha = this.alpha;
-    this.context.font = `${size}pt ${this.font}`;
+    this.context.font = size + "pt " + this.font;
     this.context.lineWidth = this.line_width;
     this.context.textAlign = "center";
     this.context.textBaseline = "middle";
@@ -790,9 +798,9 @@ this.Screen = class Screen {
     } else {
       return this.context.strokeText(text, x - this.anchor_x * w / 2, -y + this.anchor_y * h / 2);
     }
-  }
+  };
 
-  getSpriteFrame(sprite) {
+  Screen.prototype.getSpriteFrame = function(sprite) {
     var dt, frame, s;
     frame = null;
     if (typeof sprite === "string") {
@@ -827,9 +835,9 @@ this.Screen = class Screen {
     } else {
       return null;
     }
-  }
+  };
 
-  drawSprite(sprite, x, y, w, h) {
+  Screen.prototype.drawSprite = function(sprite, x, y, w, h) {
     var canvas;
     canvas = this.getSpriteFrame(sprite);
     if (canvas == null) {
@@ -849,9 +857,9 @@ this.Screen = class Screen {
     } else {
       return this.context.drawImage(canvas, x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h);
     }
-  }
+  };
 
-  drawSpritePart(sprite, sx, sy, sw, sh, x, y, w, h) {
+  Screen.prototype.drawSpritePart = function(sprite, sx, sy, sw, sh, x, y, w, h) {
     var canvas;
     canvas = this.getSpriteFrame(sprite);
     if (canvas == null) {
@@ -871,9 +879,9 @@ this.Screen = class Screen {
     } else {
       return this.context.drawImage(canvas, sx, sy, sw, sh, x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h);
     }
-  }
+  };
 
-  drawMap(map, x, y, w, h) {
+  Screen.prototype.drawMap = function(map, x, y, w, h) {
     if (typeof map === "string") {
       map = this.runtime.maps[map];
     }
@@ -884,15 +892,13 @@ this.Screen = class Screen {
     this.context.imageSmoothingEnabled = !this.pixelated;
     if (this.initDrawOp(x, -y)) {
       map.draw(this.context, -w / 2 - this.anchor_x * w / 2, -h / 2 + this.anchor_y * h / 2, w, h);
-      //@context.drawImage map.getCanvas(),-w/2-@anchor_x*w/2,-h/2+@anchor_y*h/2,w,h
       return this.closeDrawOp(x, -y);
     } else {
       return map.draw(this.context, x - w / 2 - this.anchor_x * w / 2, -y - h / 2 + this.anchor_y * h / 2, w, h);
     }
-  }
+  };
 
-  //@context.drawImage map.getCanvas(),x-w/2-@anchor_x*w/2,-y-h/2+@anchor_y*h/2,w,h
-  resize() {
+  Screen.prototype.resize = function() {
     var backingStoreRatio, ch, cw, devicePixelRatio, h, min, r, ratio, w;
     cw = window.innerWidth;
     ch = window.innerHeight;
@@ -907,8 +913,6 @@ this.Screen = class Screen {
       ">1x1": 1 / 1
     }[this.runtime.aspect];
     min = this.runtime.aspect.startsWith(">");
-    //if not ratio? and @runtime.orientation in ["portrait","landscape"]
-    //  ratio = 16/9
     if (ratio != null) {
       if (min) {
         switch (this.runtime.orientation) {
@@ -963,44 +967,62 @@ this.Screen = class Screen {
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     return this.initContext();
-  }
+  };
 
-  startControl(element) {
+  Screen.prototype.startControl = function(element) {
     var backingStoreRatio, devicePixelRatio;
     this.element = element;
-    document.addEventListener("touchstart", (event) => {
-      return this.touchStart(event);
-    });
-    document.addEventListener("touchmove", (event) => {
-      return this.touchMove(event);
-    });
-    document.addEventListener("touchend", (event) => {
-      return this.touchRelease(event);
-    });
-    document.addEventListener("touchcancel", (event) => {
-      return this.touchRelease(event);
-    });
-    document.addEventListener("mousedown", (event) => {
-      return this.mouseDown(event);
-    });
-    document.addEventListener("mousemove", (event) => {
-      return this.mouseMove(event);
-    });
-    document.addEventListener("mouseup", (event) => {
-      return this.mouseUp(event);
-    });
-    document.addEventListener("mousewheel", (event) => {
-      return this.mouseWheel(event);
-    });
-    document.addEventListener("DOMMouseScroll", (event) => {
-      return this.mouseWheel(event);
-    });
+    document.addEventListener("touchstart", (function(_this) {
+      return function(event) {
+        return _this.touchStart(event);
+      };
+    })(this));
+    document.addEventListener("touchmove", (function(_this) {
+      return function(event) {
+        return _this.touchMove(event);
+      };
+    })(this));
+    document.addEventListener("touchend", (function(_this) {
+      return function(event) {
+        return _this.touchRelease(event);
+      };
+    })(this));
+    document.addEventListener("touchcancel", (function(_this) {
+      return function(event) {
+        return _this.touchRelease(event);
+      };
+    })(this));
+    document.addEventListener("mousedown", (function(_this) {
+      return function(event) {
+        return _this.mouseDown(event);
+      };
+    })(this));
+    document.addEventListener("mousemove", (function(_this) {
+      return function(event) {
+        return _this.mouseMove(event);
+      };
+    })(this));
+    document.addEventListener("mouseup", (function(_this) {
+      return function(event) {
+        return _this.mouseUp(event);
+      };
+    })(this));
+    document.addEventListener("mousewheel", (function(_this) {
+      return function(event) {
+        return _this.mouseWheel(event);
+      };
+    })(this));
+    document.addEventListener("DOMMouseScroll", (function(_this) {
+      return function(event) {
+        return _this.mouseWheel(event);
+      };
+    })(this));
     devicePixelRatio = window.devicePixelRatio || 1;
     backingStoreRatio = this.context.webkitBackingStorePixelRatio || this.context.mozBackingStorePixelRatio || this.context.msBackingStorePixelRatio || this.context.oBackingStorePixelRatio || this.context.backingStorePixelRatio || 1;
     return this.ratio = devicePixelRatio / backingStoreRatio;
-  }
+  };
 
-  touchStart(event) {
+  Screen.prototype.touchStart = function(event) {
     var b, i, j, min, ref, t, x, y;
     event.preventDefault();
     event.stopPropagation();
@@ -1020,9 +1042,9 @@ this.Screen = class Screen {
       this.mouse.left = 1;
     }
     return false;
-  }
+  };
 
-  touchMove(event) {
+  Screen.prototype.touchMove = function(event) {
     var b, i, j, min, ref, t, x, y;
     event.preventDefault();
     event.stopPropagation();
@@ -1040,9 +1062,9 @@ this.Screen = class Screen {
       }
     }
     return false;
-  }
+  };
 
-  touchRelease(event) {
+  Screen.prototype.touchRelease = function(event) {
     var i, j, ref, t, x, y;
     for (i = j = 0, ref = event.changedTouches.length - 1; j <= ref; i = j += 1) {
       t = event.changedTouches[i];
@@ -1055,9 +1077,9 @@ this.Screen = class Screen {
       this.mouse.middle = 0;
     }
     return false;
-  }
+  };
 
-  mouseDown(event) {
+  Screen.prototype.mouseDown = function(event) {
     var b, min, x, y;
     this.mousepressed = true;
     b = this.canvas.getBoundingClientRect();
@@ -1068,7 +1090,6 @@ this.Screen = class Screen {
       x: x,
       y: y
     };
-    //console.info @touches["mouse"]
     this.mouse.x = x;
     this.mouse.y = y;
     switch (event.button) {
@@ -1083,9 +1104,9 @@ this.Screen = class Screen {
     }
     this.mouse.pressed = Math.min(1, this.mouse.left + this.mouse.right + this.mouse.middle);
     return false;
-  }
+  };
 
-  mouseMove(event) {
+  Screen.prototype.mouseMove = function(event) {
     var b, min, x, y;
     event.preventDefault();
     b = this.canvas.getBoundingClientRect();
@@ -1099,9 +1120,9 @@ this.Screen = class Screen {
     this.mouse.x = x;
     this.mouse.y = y;
     return false;
-  }
+  };
 
-  mouseUp(event) {
+  Screen.prototype.mouseUp = function(event) {
     var b, min, x, y;
     delete this.touches["mouse"];
     b = this.canvas.getBoundingClientRect();
@@ -1122,18 +1143,20 @@ this.Screen = class Screen {
     }
     this.mouse.pressed = Math.min(1, this.mouse.left + this.mouse.right + this.mouse.middle);
     return false;
-  }
+  };
 
-  mouseWheel(e) {
+  Screen.prototype.mouseWheel = function(e) {
     if (e.wheelDelta < 0 || e.detail > 0) {
       return this.wheel = -1;
     } else {
       return this.wheel = 1;
     }
-  }
+  };
 
-  takePicture(callback) {
+  Screen.prototype.takePicture = function(callback) {
     return callback(this.canvas.toDataURL());
-  }
+  };
 
-};
+  return Screen;
+
+})();

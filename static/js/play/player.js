@@ -1,8 +1,7 @@
-this.Player = class Player {
-  constructor(listener) {
+this.Player = (function() {
+  function Player(listener) {
     var i, len, ref, source;
     this.listener = listener;
-    //src = document.getElementById("code").innerText
     this.source_count = 0;
     this.sources = {};
     this.resources = resources;
@@ -20,68 +19,71 @@ this.Player = class Player {
     }
   }
 
-  loadSource(source) {
+  Player.prototype.loadSource = function(source) {
     var req;
     req = new XMLHttpRequest();
-    req.onreadystatechange = (event) => {
-      var name;
-      if (req.readyState === XMLHttpRequest.DONE) {
-        if (req.status === 200) {
-          name = source.file.split(".")[0];
-          this.sources[name] = req.responseText;
-          this.source_count++;
-          if (this.source_count >= resources.sources.length && (this.runtime == null)) {
-            return this.start();
+    req.onreadystatechange = (function(_this) {
+      return function(event) {
+        var name;
+        if (req.readyState === XMLHttpRequest.DONE) {
+          if (req.status === 200) {
+            name = source.file.split(".")[0];
+            _this.sources[name] = req.responseText;
+            _this.source_count++;
+            if (_this.source_count >= resources.sources.length && (_this.runtime == null)) {
+              return _this.start();
+            }
           }
         }
-      }
-    };
-    req.open("GET", location.origin + location.pathname + `ms/${source.file}?v=${source.version}`);
+      };
+    })(this);
+    req.open("GET", location.origin + location.pathname + ("ms/" + source.file + "?v=" + source.version));
     return req.send();
-  }
+  };
 
-  start() {
+  Player.prototype.start = function() {
     var touchListener, touchStartListener, wrapper;
     this.runtime = new Runtime((window.exported_project ? "" : location.origin + location.pathname), this.sources, resources, this);
     this.client = new PlayerClient(this);
     wrapper = document.getElementById("canvaswrapper");
     wrapper.appendChild(this.runtime.screen.canvas);
-    window.addEventListener("resize", () => {
-      return this.resize();
-    });
+    window.addEventListener("resize", (function(_this) {
+      return function() {
+        return _this.resize();
+      };
+    })(this));
     this.resize();
-    //@runtime.start()
-    touchStartListener = (event) => {
-      event.preventDefault();
-      //event.stopPropagation()
-      //event.stopImmediatePropagation()
-      this.runtime.screen.canvas.removeEventListener("touchstart", touchStartListener);
-      return true;
-    };
-    touchListener = (event) => {
-      //event.preventDefault()
-      //event.stopPropagation()
-      //event.stopImmediatePropagation()
-      //@runtime.screen.canvas.removeEventListener "touchend",touchListener
-      if ((this.runtime != null) && (this.runtime.vm != null) && this.runtime.vm.context.global.system.disable_autofullscreen) {
+    touchStartListener = (function(_this) {
+      return function(event) {
+        event.preventDefault();
+        _this.runtime.screen.canvas.removeEventListener("touchstart", touchStartListener);
         return true;
-      } else {
-        this.setFullScreen();
-      }
-      return true;
-    };
+      };
+    })(this);
+    touchListener = (function(_this) {
+      return function(event) {
+        if ((_this.runtime != null) && (_this.runtime.vm != null) && _this.runtime.vm.context.global.system.disable_autofullscreen) {
+          return true;
+        } else {
+          _this.setFullScreen();
+        }
+        return true;
+      };
+    })(this);
     this.runtime.screen.canvas.addEventListener("touchstart", touchStartListener);
     this.runtime.screen.canvas.addEventListener("touchend", touchListener);
     this.runtime.start();
-    window.addEventListener("message", (msg) => {
-      return this.messageReceived(msg);
-    });
+    window.addEventListener("message", (function(_this) {
+      return function(msg) {
+        return _this.messageReceived(msg);
+      };
+    })(this));
     return this.postMessage({
       name: "focus"
     });
-  }
+  };
 
-  resize() {
+  Player.prototype.resize = function() {
     var file, ref, results, src;
     this.runtime.screen.resize();
     if (this.runtime.vm != null) {
@@ -98,9 +100,9 @@ this.Player = class Player {
         return this.runtime.drawCall();
       }
     }
-  }
+  };
 
-  setFullScreen() {
+  Player.prototype.setFullScreen = function() {
     var ref;
     if ((document.documentElement.webkitRequestFullScreen != null) && !document.webkitIsFullScreen) {
       document.documentElement.webkitRequestFullScreen();
@@ -112,51 +114,52 @@ this.Player = class Player {
     if ((window.screen != null) && (window.screen.orientation != null) && ((ref = window.orientation) === "portrait" || ref === "landscape")) {
       return window.screen.orientation.lock(window.orientation).then(null, function(error) {});
     }
-  }
+  };
 
-  //console.error error
-  reportError(err) {
+  Player.prototype.reportError = function(err) {
     return this.postMessage({
       name: "error",
       data: err
     });
-  }
+  };
 
-  log(text) {
+  Player.prototype.log = function(text) {
     return this.postMessage({
       name: "log",
       data: text
     });
-  }
+  };
 
-  codePaused() {
+  Player.prototype.codePaused = function() {
     return this.postMessage({
       name: "code_paused"
     });
-  }
+  };
 
-  exit() {
+  Player.prototype.exit = function() {
     return this.postMessage({
       name: "exit"
     });
-  }
+  };
 
-  messageReceived(msg) {
+  Player.prototype.messageReceived = function(msg) {
     var code, data, err, file;
     data = msg.data;
     try {
       data = JSON.parse(data);
       switch (data.name) {
         case "command":
-          return this.runtime.runCommand(data.line, (res) => {
-            if (!data.line.trim().startsWith("print")) {
-              return this.postMessage({
-                name: "output",
-                data: res,
-                id: data.id
-              });
-            }
-          });
+          return this.runtime.runCommand(data.line, (function(_this) {
+            return function(res) {
+              if (!data.line.trim().startsWith("print")) {
+                return _this.postMessage({
+                  name: "output",
+                  data: res,
+                  id: data.id
+                });
+              }
+            };
+          })(this));
         case "pause":
           return this.runtime.stop();
         case "step_forward":
@@ -177,12 +180,14 @@ this.Player = class Player {
           file = data.file;
           return this.runtime.updateMap(file, 0, data.data);
         case "take_picture":
-          this.runtime.screen.takePicture((pic) => {
-            return this.postMessage({
-              name: "picture_taken",
-              data: pic
-            });
-          });
+          this.runtime.screen.takePicture((function(_this) {
+            return function(pic) {
+              return _this.postMessage({
+                name: "picture_taken",
+                data: pic
+              });
+            };
+          })(this));
           if (this.runtime.stopped) {
             return this.runtime.drawCall();
           }
@@ -205,27 +210,27 @@ this.Player = class Player {
       err = error1;
       return console.error(err);
     }
-  }
+  };
 
-  call(name, args) {
+  Player.prototype.call = function(name, args) {
     if ((this.runtime != null) && (this.runtime.vm != null)) {
       return this.runtime.vm.call(name, args);
     }
-  }
+  };
 
-  setGlobal(name, value) {
+  Player.prototype.setGlobal = function(name, value) {
     if ((this.runtime != null) && (this.runtime.vm != null)) {
       return this.runtime.vm.context.global[name] = value;
     }
-  }
+  };
 
-  exec(command, callback) {
+  Player.prototype.exec = function(command, callback) {
     if (this.runtime != null) {
       return this.runtime.runCommand(command, callback);
     }
-  }
+  };
 
-  postMessage(data) {
+  Player.prototype.postMessage = function(data) {
     var err;
     if (window !== window.parent) {
       window.parent.postMessage(JSON.stringify(data), "*");
@@ -238,22 +243,24 @@ this.Player = class Player {
         return console.error(err);
       }
     }
-  }
+  };
 
-  postRequest(data, callback) {
+  Player.prototype.postRequest = function(data, callback) {
     data.request_id = this.request_id;
     this.pending_requests[this.request_id++] = callback;
     return this.postMessage(data);
-  }
+  };
 
-};
+  return Player;
+
+})();
 
 if ((navigator.serviceWorker != null) && !window.skip_service_worker) {
   navigator.serviceWorker.register('sw.js', {
     scope: location.pathname
   }).then(function(reg) {
     return console.log('Registration succeeded. Scope is' + reg.scope);
-  }).catch(function(error) {
+  })["catch"](function(error) {
     return console.log('Registration failed with' + error);
   });
 }

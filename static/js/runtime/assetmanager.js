@@ -1,39 +1,55 @@
-this.AssetManager = class AssetManager {
-  constructor(runtime) {
+this.AssetManager = (function() {
+  function AssetManager(runtime) {
     this.runtime = runtime;
-    this.interface = {
-      loadFont: (font) => {
-        return this.loadFont(font);
-      },
-      loadModel: (path, scene, callback) => {
-        return this.loadModel(path, scene, callback);
-      },
-      loadImage: (path, callback) => {
-        return this.loadImage(path, callback);
-      },
-      loadJSON: (path, callback) => {
-        return this.loadJSON(path, callback);
-      },
-      loadText: (path, callback) => {
-        return this.loadText(path, callback);
-      },
-      loadCSV: (path, callback) => {
-        return this.loadCSV(path, callback);
-      },
-      loadMarkdown: (path, callback) => {
-        return this.loadMarkdown(path, callback);
-      },
-      wasmInstance: (path, callback) => {
-        return this.wasmInstance(path, callback);
-      }
+    this["interface"] = {
+      loadFont: (function(_this) {
+        return function(font) {
+          return _this.loadFont(font);
+        };
+      })(this),
+      loadModel: (function(_this) {
+        return function(path, scene, callback) {
+          return _this.loadModel(path, scene, callback);
+        };
+      })(this),
+      loadImage: (function(_this) {
+        return function(path, callback) {
+          return _this.loadImage(path, callback);
+        };
+      })(this),
+      loadJSON: (function(_this) {
+        return function(path, callback) {
+          return _this.loadJSON(path, callback);
+        };
+      })(this),
+      loadText: (function(_this) {
+        return function(path, callback) {
+          return _this.loadText(path, callback);
+        };
+      })(this),
+      loadCSV: (function(_this) {
+        return function(path, callback) {
+          return _this.loadCSV(path, callback);
+        };
+      })(this),
+      loadMarkdown: (function(_this) {
+        return function(path, callback) {
+          return _this.loadMarkdown(path, callback);
+        };
+      })(this),
+      wasmInstance: (function(_this) {
+        return function(path, callback) {
+          return _this.wasmInstance(path, callback);
+        };
+      })(this)
     };
   }
 
-  getInterface() {
-    return this.interface;
-  }
+  AssetManager.prototype.getInterface = function() {
+    return this["interface"];
+  };
 
-  loadFont(font) {
+  AssetManager.prototype.loadFont = function(font) {
     var err, file, name, split;
     if (typeof font !== "string") {
       return;
@@ -42,17 +58,19 @@ this.AssetManager = class AssetManager {
     split = file.split("-");
     name = split[split.length - 1];
     try {
-      font = new FontFace(name, `url(assets/${file}.ttf)`);
-      return font.load().then(() => {
-        return document.fonts.add(font);
-      });
+      font = new FontFace(name, "url(assets/" + file + ".ttf)");
+      return font.load().then((function(_this) {
+        return function() {
+          return document.fonts.add(font);
+        };
+      })(this));
     } catch (error) {
       err = error;
       return console.error(err);
     }
-  }
+  };
 
-  loadModel(path, scene, callback) {
+  AssetManager.prototype.loadModel = function(path, scene, callback) {
     var loader;
     if (typeof BABYLON === "undefined" || BABYLON === null) {
       return;
@@ -66,16 +84,18 @@ this.AssetManager = class AssetManager {
       path = path.replace(/\//g, "-");
       path += ".glb";
     }
-    return BABYLON.SceneLoader.LoadAssetContainer("", `assets/${path}`, scene, (container) => {
-      loader.container = container;
-      loader.ready = 1;
-      if (callback) {
-        return callback(container);
-      }
-    });
-  }
+    return BABYLON.SceneLoader.LoadAssetContainer("", "assets/" + path, scene, (function(_this) {
+      return function(container) {
+        loader.container = container;
+        loader.ready = 1;
+        if (callback) {
+          return callback(container);
+        }
+      };
+    })(this));
+  };
 
-  loadImage(path, callback) {
+  AssetManager.prototype.loadImage = function(path, callback) {
     var img, loader;
     loader = {
       ready: 0
@@ -84,84 +104,97 @@ this.AssetManager = class AssetManager {
       path = this.runtime.assets[path].file;
     }
     img = new Image;
-    img.src = `assets/${path}`;
-    img.onload = () => {
-      var i;
-      i = new msImage(img);
-      loader.image = i;
-      loader.ready = 1;
-      if (callback) {
-        return callback(i);
-      }
-    };
-    return loader;
-  }
-
-  loadJSON(path, callback) {
-    var loader;
-    path = path.replace(/\//g, "-");
-    path = `assets/${path}.json`;
-    loader = {
-      ready: 0
-    };
-    fetch(path).then((result) => {
-      return result.json().then((data) => {
-        loader.data = data;
+    img.src = "assets/" + path;
+    img.onload = (function(_this) {
+      return function() {
+        var i;
+        i = new msImage(img);
+        loader.image = i;
         loader.ready = 1;
         if (callback) {
-          return callback(data);
+          return callback(i);
         }
-      });
-    });
+      };
+    })(this);
     return loader;
-  }
+  };
 
-  loadText(path, callback, ext = "txt") {
+  AssetManager.prototype.loadJSON = function(path, callback) {
     var loader;
     path = path.replace(/\//g, "-");
-    path = `assets/${path}.${ext}`;
+    path = "assets/" + path + ".json";
     loader = {
       ready: 0
     };
-    fetch(path).then((result) => {
-      return result.text().then((text) => {
-        loader.text = text;
-        loader.ready = 1;
-        if (callback) {
-          return callback(text);
-        }
-      });
-    });
-    return loader;
-  }
-
-  loadCSV(path, callback) {
-    return this.loadText(path, callback, "csv");
-  }
-
-  loadMarkdown(path, callback) {
-    return this.loadText(path, callback, "md");
-  }
-
-  wasmInstance(path, callback) {
-    var loader;
-    path = path.replace(/\//g, "-");
-    path = `assets/${path}.wasm`;
-    loader = {
-      ready: 0
-    };
-    fetch(path).then((response) => {
-      return response.arrayBuffer().then((buffer) => {
-        return WebAssembly.instantiate(buffer).then((result) => {
-          loader.instance = result.instance;
+    fetch(path).then((function(_this) {
+      return function(result) {
+        return result.json().then(function(data) {
+          loader.data = data;
           loader.ready = 1;
           if (callback) {
-            return callback(loader.instance);
+            return callback(data);
           }
         });
-      });
-    });
+      };
+    })(this));
     return loader;
-  }
+  };
 
-};
+  AssetManager.prototype.loadText = function(path, callback, ext) {
+    var loader;
+    if (ext == null) {
+      ext = "txt";
+    }
+    path = path.replace(/\//g, "-");
+    path = "assets/" + path + "." + ext;
+    loader = {
+      ready: 0
+    };
+    fetch(path).then((function(_this) {
+      return function(result) {
+        return result.text().then(function(text) {
+          loader.text = text;
+          loader.ready = 1;
+          if (callback) {
+            return callback(text);
+          }
+        });
+      };
+    })(this));
+    return loader;
+  };
+
+  AssetManager.prototype.loadCSV = function(path, callback) {
+    return this.loadText(path, callback, "csv");
+  };
+
+  AssetManager.prototype.loadMarkdown = function(path, callback) {
+    return this.loadText(path, callback, "md");
+  };
+
+  AssetManager.prototype.wasmInstance = function(path, callback) {
+    var loader;
+    path = path.replace(/\//g, "-");
+    path = "assets/" + path + ".wasm";
+    loader = {
+      ready: 0
+    };
+    fetch(path).then((function(_this) {
+      return function(response) {
+        return response.arrayBuffer().then(function(buffer) {
+          return WebAssembly.instantiate(buffer).then(function(result) {
+            loader.instance = result.instance;
+            loader.ready = 1;
+            if (callback) {
+              return callback(loader.instance);
+            }
+          });
+        });
+      };
+    })(this));
+    return loader;
+  };
+
+  return AssetManager;
+
+})();
