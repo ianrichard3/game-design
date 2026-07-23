@@ -49,11 +49,6 @@ this.Options = (function() {
         return _this.languageChanged(value);
       };
     })(this));
-    this.checkInput("projectoption-networking", (function(_this) {
-      return function(value) {
-        return _this.networkingChanged(value);
-      };
-    })(this));
     advanced = document.getElementById("advanced-project-options-button");
     advanced.addEventListener("click", (function(_this) {
       return function() {
@@ -180,7 +175,6 @@ this.Options = (function() {
     document.getElementById("projectoption-type").value = this.app.project.type || "app";
     document.getElementById("projectoption-graphics").value = (this.app.project.graphics || "M1").split("_")[0];
     document.getElementById("projectoption-language").value = this.app.project.language || "microscript_v1_i";
-    document.getElementById("projectoption-networking").checked = this.app.project.networking || false;
     this.library_tip.style.display = this.app.project.type === "library" ? "block" : "none";
     this.updateOptionalLibs();
     this.updateSecretCodeLine();
@@ -549,20 +543,6 @@ this.Options = (function() {
       name: "set_project_option",
       project: this.app.project.id,
       option: "language",
-      value: value
-    }, (function(_this) {
-      return function(msg) {};
-    })(this));
-  };
-
-  Options.prototype.networkingChanged = function(value) {
-    this.app.project.networking = value;
-    this.app.runwindow.updateServerBar();
-    this.app.publish.updateServerExport();
-    return this.app.client.sendRequest({
-      name: "set_project_option",
-      project: this.app.project.id,
-      option: "networking",
       value: value
     }, (function(_this) {
       return function(msg) {};

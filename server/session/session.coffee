@@ -1,9 +1,7 @@
 SHA256 = require("crypto-js/sha256")
 ProjectManager = require __dirname+"/projectmanager.js"
 RegexLib = require __dirname+"/../../static/js/util/regexlib.js"
-ForumSession = require __dirname+"/../forum/forumsession.js"
 JSZip = require "jszip"
-RelayService = require __dirname + "/../relay/relayservice.js"
 
 class @Session
   constructor:(@server,@socket)->
@@ -78,7 +76,6 @@ class @Session
     @register "read_public_project_file",(msg)=>@readPublicProjectFile(msg)
     @register "listen_to_project",(msg)=>@listenToProject(msg)
     @register "get_file_versions",(msg)=>@getFileVersions(msg)
-    @register "sync_project_files",(msg)=>@syncProjectFiles(msg)
 
     @register "set_project_local_folder",(msg)=>@setProjectLocalFolder(msg)
     @register "unlink_project_local_folder",(msg)=>@unlinkProjectLocalFolder(msg)
@@ -113,10 +110,6 @@ class @Session
     @register "delete_project_comment",(msg)=>@deleteProjectComment(msg)
     @register "edit_project_comment",(msg)=>@editProjectComment(msg)
 
-    @register "build_project",(msg)=>@buildProject(msg)
-    @register "get_build_status",(msg)=>@getBuildStatus(msg)
-
-    @register "start_builder",(msg)=>@startBuilder(msg)
     @register "backup_complete",(msg)=>@backupComplete(msg)
 
     @register "upload_request",(msg)=>@uploadRequest(msg)
@@ -127,20 +120,9 @@ class @Session
     @register "set_project_approved",(msg)=>@setProjectApproved msg
     @register "set_user_approved",(msg)=>@setUserApproved msg
 
-    # client / server
-    @register "relay_server_available",(msg) => @relayServerAvailable msg
-    @register "get_relay_server",(msg) => @getRelayServer msg
-    @register "get_server_token",(msg) => @getServerToken msg
-    @register "check_server_token",(msg) => @checkServerToken msg
-
-    if not @server.config.delegate_relay_service
-      @relay_service = new RelayService @
-
     for plugin in @server.plugins
       if plugin.registerSessionMessages?
         plugin.registerSessionMessages @
-
-    @forum_session = new ForumSession @
 
     @reserved_nicks =
       "admin":true
@@ -465,23 +447,6 @@ class @Session
       name: "error"
       error: error
       request_id: request_id
-
-  syncProjectFiles:(data)->
-    return @sendError("Bad request") if not data.request_id?
-    return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("bad request",data.request_id) if not data.source?
-    return @sendError("bad request",data.request_id) if not data.dest?
-    return @sendError("bad request",data.request_id) if not data.ops?
-
-    dest = @content.projects[data.dest]
-    if dest?
-      @setCurrentProject dest
-      source = @content.projects[data.source]
-      if source?
-        if not dest.manager.canReadProject @user,source
-          return @sendError("access denied",data.request_id)
-
-        dest.manager.syncFiles @,data,source
 
   requireOwnedProject:(data)->
     return null if not @user?
@@ -1628,35 +1593,6 @@ class @Session
       name: "show_error"
       error: text
 
-  buildProject:(msg)->
-    return @sendError("not connected") if not @user?
-
-    project = @content.projects[msg.project] if msg.project?
-    if project?
-      @setCurrentProject project
-      return if not project.manager.canWrite @user
-      return if not msg.target?
-      build = @server.build_manager.startBuild(project,msg.target)
-      @send
-        name: "build_project"
-        request_id: msg.request_id
-        build: if build? then build.export() else null
-
-  getBuildStatus:(msg)->
-    return @sendError("not connected") if not @user?
-
-    project = @content.projects[msg.project] if msg.project?
-    if project?
-      @setCurrentProject project
-      return if not project.manager.canWrite @user
-      return if not msg.target?
-      build = @server.build_manager.getBuildInfo(project,msg.target)
-      @send
-        name: "build_project"
-        request_id: msg.request_id
-        build: if build? then build.export() else null
-        active_target: @server.build_manager.hasBuilder msg.target
-
   timeCheck:()->
     if Date.now()>@last_active+5*60000 # 5 minutes prevents breaking large assets uploads
       @socket.close()
@@ -1667,113 +1603,10 @@ class @Session
       @upload_request_id = -1
       @upload_request_buffers = []
 
-  startBuilder:(msg)->
-    if msg.target?
-      if msg.key == @server.config["builder-key"]
-        @server.sessionClosed @
-        @server.build_manager.registerBuilder @,msg.target
-
   backupComplete:(msg)->
     if msg.key == @server.config["backup-key"]
       @server.sessionClosed @
       @server.last_backup_time = Date.now()
-
-  relayServerAvailable:(msg)->
-    if msg.key == @server.config["relay-key"]
-      @server.relay_server =
-        address: msg.address
-        session: @
-        time: Date.now()
-
-      @disconnected = ()=>
-        if @server.relay_server? and @ == @server.relay_server.session
-          console.info "relay server disconnected: " + @server.relay_server.address
-          delete @server.relay_server
-
-      console.info "relay server available: "+msg.address
-
-  getRelayServer:(msg)->
-    if not @server.config.delegate_relay_service
-      @send
-        name: "get_relay_server"
-        address: "self"
-        request_id: msg.request_id
-    else
-      if @server.relay_server?
-        @send
-          name: "get_relay_server"
-          address: @server.relay_server.address
-          request_id: msg.request_id
-      else
-        @send
-          name: "error"
-          error: "Relay server not available"
-          request_id: msg.request_id
-
-  getServerToken:(msg)->
-    return if not msg.user_token
-    return if not msg.server_id
-
-    if @server.config.standalone and @content.user_count == 1
-      user = @server.content.users[0]
-    else
-      token = @content.findToken msg.user_token
-      if token? and token.user? and not token.user.flags.deleted
-        user = token.user
-
-    if user?
-      id = msg.server_id.split("/")
-      owner = @server.content.users_by_nick[id[0]]
-      if owner?
-        project = owner.findProjectBySlug id[1]
-        if project?
-          manager = new ProjectManager project
-          if manager.canWrite(user)
-            value = ""
-            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-            for i in [0..31] by 1
-              value += chars.charAt(Math.floor(Math.random()*chars.length))
-
-            token =
-              value: value
-              time: Date.now()
-              server_id: msg.server_id
-
-            if not @server.server_tokens?
-              @server.server_tokens = {}
-
-            @server.server_tokens[value] = token
-
-            @send
-              name: "get_server_token"
-              token: value
-              request_id: msg.request_id
-
-  serverTokensCleanup:()->
-    if @server.server_tokens?
-      for key,value of @server.server_tokens
-        if value.time < Date.now()-60000
-          delete @server.server_tokens[key]
- 
-    return
-
-  checkServerToken:(msg)->
-    @serverTokensCleanup()
-    return if not msg.token?
-    @serverTokenCheck msg.token,msg.server_id,()=>
-      @send
-        name: "check_server_token"
-        server_id: msg.server_id
-        token: msg.token
-        valid: true
-        request_id: msg.request_id
-
-  serverTokenCheck:(token,server_id,callback)->
-    if @server.server_tokens?
-      t = @server.server_tokens[token]
-      if t? and t.server_id == server_id
-        delete @server.server_tokens[token]
-        callback()
 
   uploadRequest:(msg)=>
     return if not @user?

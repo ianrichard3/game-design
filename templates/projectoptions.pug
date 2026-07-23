@@ -112,12 +112,6 @@ div.projectoptions#projectoptions
             select.marginleft10#projectoption-graphics-version
 
 
-          div.projectoption#project-option-networking
-            h3 #{translator.get("Networking")}
-            input(type="checkbox" id="projectoption-networking")
-            label(for="projectoption-networking") #{translator.get("Enable networking features")}
-            div.tip #{translator.get("Create online multiplayer games using a client/server networking model")}
-
           div.projectoption#project-option-libs
             h3 #{translator.get("Additional tools and libraries")}
             each val,key in optional_libs

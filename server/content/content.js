@@ -1,4 +1,4 @@
-var Cleaner, DEFAULT_CODE, Forum, Project, Tag, Token, Translator, User, usage;
+var Cleaner, DEFAULT_CODE, Project, Tag, Token, Translator, User, usage;
 
 usage = require("pidusage");
 
@@ -11,8 +11,6 @@ Tag = require(__dirname + "/tag.js");
 Token = require(__dirname + "/token.js");
 
 Translator = require(__dirname + "/translator.js");
-
-Forum = require(__dirname + "/../forum/forum.js");
 
 Cleaner = require(__dirname + "/cleaner.js");
 
@@ -50,14 +48,12 @@ this.Content = (function() {
       };
     })(this)), 6000);
     this.translator = new Translator(this);
-    this.forum = new Forum(this);
     this.cleaner = new Cleaner(this);
   }
 
   Content.prototype.close = function() {
     clearInterval(this.top_interval);
     clearInterval(this.log_interval);
-    this.forum.close();
     if (this.cleaner != null) {
       return this.cleaner.stop();
     }

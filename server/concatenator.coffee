@@ -198,7 +198,6 @@ class @Concatenator
       "/css/publish.css"
       "/css/explore.css"
       "/css/options.css"
-      "/css/sync.css"
       "/css/git.css"
       "/css/user.css"
       "/css/media.css"
@@ -245,8 +244,6 @@ class @Concatenator
       "/js/options/options.js"
       "/js/options/tabmanager.js"
       "/js/options/pluginview.js"
-
-      "/js/sync/sync.js"
 
       "/js/git/gitpanel.js"
 

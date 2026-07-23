@@ -4,7 +4,6 @@ Project = require __dirname+"/project.js"
 Tag = require __dirname+"/tag.js"
 Token = require __dirname+"/token.js"
 Translator = require __dirname+"/translator.js"
-Forum = require __dirname+"/../forum/forum.js"
 Cleaner = require __dirname+"/cleaner.js"
 
 class @Content
@@ -37,14 +36,12 @@ class @Content
     @log_interval = setInterval (()=> @statusLog()),6000
 
     @translator = new Translator @
-    @forum = new Forum @
 
     @cleaner = new Cleaner @
 
   close:()->
     clearInterval @top_interval
     clearInterval @log_interval
-    @forum.close()
     @cleaner.stop() if @cleaner?
 
   statusLog:()->

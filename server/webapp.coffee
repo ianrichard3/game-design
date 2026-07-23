@@ -6,8 +6,6 @@ Jimp = require "jimp"
 Concatenator = require __dirname+"/concatenator.js"
 Fonts = require __dirname+"/fonts.js"
 ExportFeatures = require __dirname+"/app/exportfeatures.js"
-ForumApp = require __dirname+"/forum/forumapp.js"
-API = require __dirname+"/api.js"
 
 `const { marked } = require("marked")`
 
@@ -26,14 +24,10 @@ class @WebApp
     #  console.info "redirecting to: "+redir
     #  redir = res.redirect(redir)
 
-    @forum_app = new ForumApp @server,@
-    @api = new API @server,@
-
     @concatenator = new Concatenator @
     @fonts = new Fonts
 
     @export_features = new ExportFeatures @
-    @server.build_manager.createLinks(@app)
 
     @home_page = {}
 
@@ -257,10 +251,6 @@ class @WebApp
       if user.id == 0 and project.properties? and project.properties.embedder_policy
         embedder_policy = true
         console.info "embedder_policy is true"
-      
-      if req.query? and req.query.server?
-        return if @ensureDevArea(req,res)
-        return @serverBox req,res
 
       if not embedder_policy
         return if @ensureIOArea(req,res)
@@ -276,10 +266,7 @@ class @WebApp
 
       manager = @getProjectManager(project)
 
-      if req.query? and req.query.srv?
-        jsfiles = @concatenator.getServerJSFiles()
-      else
-        jsfiles = @concatenator.getPlayerJSFiles(project.graphics)
+      jsfiles = @concatenator.getPlayerJSFiles(project.graphics)
 
       for lib in project.libs
         l = @concatenator.findOptionalLib lib
@@ -658,34 +645,6 @@ class @WebApp
       true
     else
       false
-
-  serverBox:(req,res)->
-    access = @getProjectAccess req,res
-    return if not access?
-
-    user = access.user
-    project = access.project
-
-    pathcode = if project.public then project.slug else "#{project.slug}/#{project.code}"
-    if not @serverbox_funk? or not @server.use_cache
-      @serverbox_funk = pug.compileFile "../templates/play/serverbox.pug"
-
-    host = req.get("host").replace(".dev",".io")
-    if @server.config.run_domain?
-      server_url = @server.config.run_domain + req.path + "?srv"
-    else
-      server_url = req.protocol+'://' + host + req.url.replace "?server", "?srv"
-
-    res.send @serverbox_funk
-      user: user
-      server_url: server_url
-      standalone: @server.config.standalone == true
-      game:
-        name: project.slug
-        pathcode: pathcode
-        title: project.title
-        author: user.nick
-        description: project.description
 
   getUserPublicPage:(req,res)->
     s = req.path.split("/")

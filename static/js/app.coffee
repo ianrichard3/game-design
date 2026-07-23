@@ -36,7 +36,6 @@ class App
     @options = new Options @
     @tab_manager = new TabManager @
     @lib_manager = new LibManager @
-    @sync = new Sync @
     @git_panel = new GitPanel @
     @publish = new Publish @
     @user_settings = new UserSettings @
@@ -230,7 +229,6 @@ class App
     @options.projectOpened()
     @tab_manager.projectOpened()
     @lib_manager.projectOpened()
-    @sync.projectOpened()
     @git_panel.projectOpened()
     @publish.loadProject(@project)
     @project.load()

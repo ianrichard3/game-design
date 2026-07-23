@@ -1,4 +1,4 @@
-var ForumSession, JSZip, ProjectManager, RegexLib, RelayService, SHA256,
+var JSZip, ProjectManager, RegexLib, SHA256,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 SHA256 = require("crypto-js/sha256");
@@ -7,11 +7,7 @@ ProjectManager = require(__dirname + "/projectmanager.js");
 
 RegexLib = require(__dirname + "/../../static/js/util/regexlib.js");
 
-ForumSession = require(__dirname + "/../forum/forumsession.js");
-
 JSZip = require("jszip");
-
-RelayService = require(__dirname + "/../relay/relayservice.js");
 
 this.Session = (function() {
   function Session(server, socket) {
@@ -235,11 +231,6 @@ this.Session = (function() {
         return _this.getFileVersions(msg);
       };
     })(this));
-    this.register("sync_project_files", (function(_this) {
-      return function(msg) {
-        return _this.syncProjectFiles(msg);
-      };
-    })(this));
     this.register("set_project_local_folder", (function(_this) {
       return function(msg) {
         return _this.setProjectLocalFolder(msg);
@@ -415,29 +406,6 @@ this.Session = (function() {
         return _this.setUserApproved(msg);
       };
     })(this));
-    this.register("relay_server_available", (function(_this) {
-      return function(msg) {
-        return _this.relayServerAvailable(msg);
-      };
-    })(this));
-    this.register("get_relay_server", (function(_this) {
-      return function(msg) {
-        return _this.getRelayServer(msg);
-      };
-    })(this));
-    this.register("get_server_token", (function(_this) {
-      return function(msg) {
-        return _this.getServerToken(msg);
-      };
-    })(this));
-    this.register("check_server_token", (function(_this) {
-      return function(msg) {
-        return _this.checkServerToken(msg);
-      };
-    })(this));
-    if (!this.server.config.delegate_relay_service) {
-      this.relay_service = new RelayService(this);
-    }
     ref = this.server.plugins;
     for (j = 0, len1 = ref.length; j < len1; j++) {
       plugin = ref[j];
@@ -445,7 +413,6 @@ this.Session = (function() {
         plugin.registerSessionMessages(this);
       }
     }
-    this.forum_session = new ForumSession(this);
     this.reserved_nicks = {
       "admin": true,
       "api": true,
@@ -867,36 +834,6 @@ this.Session = (function() {
       error: error,
       request_id: request_id
     });
-  };
-
-  Session.prototype.syncProjectFiles = function(data) {
-    var dest, source;
-    if (data.request_id == null) {
-      return this.sendError("Bad request");
-    }
-    if (this.user == null) {
-      return this.sendError("not connected", data.request_id);
-    }
-    if (data.source == null) {
-      return this.sendError("bad request", data.request_id);
-    }
-    if (data.dest == null) {
-      return this.sendError("bad request", data.request_id);
-    }
-    if (data.ops == null) {
-      return this.sendError("bad request", data.request_id);
-    }
-    dest = this.content.projects[data.dest];
-    if (dest != null) {
-      this.setCurrentProject(dest);
-      source = this.content.projects[data.source];
-      if (source != null) {
-        if (!dest.manager.canReadProject(this.user, source)) {
-          return this.sendError("access denied", data.request_id);
-        }
-        return dest.manager.syncFiles(this, data, source);
-      }
-    }
   };
 
   Session.prototype.requireOwnedProject = function(data) {
@@ -2648,140 +2585,6 @@ this.Session = (function() {
     if (msg.key === this.server.config["backup-key"]) {
       this.server.sessionClosed(this);
       return this.server.last_backup_time = Date.now();
-    }
-  };
-
-  Session.prototype.relayServerAvailable = function(msg) {
-    if (msg.key === this.server.config["relay-key"]) {
-      this.server.relay_server = {
-        address: msg.address,
-        session: this,
-        time: Date.now()
-      };
-      this.disconnected = (function(_this) {
-        return function() {
-          if ((_this.server.relay_server != null) && _this === _this.server.relay_server.session) {
-            console.info("relay server disconnected: " + _this.server.relay_server.address);
-            return delete _this.server.relay_server;
-          }
-        };
-      })(this);
-      return console.info("relay server available: " + msg.address);
-    }
-  };
-
-  Session.prototype.getRelayServer = function(msg) {
-    if (!this.server.config.delegate_relay_service) {
-      return this.send({
-        name: "get_relay_server",
-        address: "self",
-        request_id: msg.request_id
-      });
-    } else {
-      if (this.server.relay_server != null) {
-        return this.send({
-          name: "get_relay_server",
-          address: this.server.relay_server.address,
-          request_id: msg.request_id
-        });
-      } else {
-        return this.send({
-          name: "error",
-          error: "Relay server not available",
-          request_id: msg.request_id
-        });
-      }
-    }
-  };
-
-  Session.prototype.getServerToken = function(msg) {
-    var chars, i, id, j, manager, owner, project, token, user, value;
-    if (!msg.user_token) {
-      return;
-    }
-    if (!msg.server_id) {
-      return;
-    }
-    if (this.server.config.standalone && this.content.user_count === 1) {
-      user = this.server.content.users[0];
-    } else {
-      token = this.content.findToken(msg.user_token);
-      if ((token != null) && (token.user != null) && !token.user.flags.deleted) {
-        user = token.user;
-      }
-    }
-    if (user != null) {
-      id = msg.server_id.split("/");
-      owner = this.server.content.users_by_nick[id[0]];
-      if (owner != null) {
-        project = owner.findProjectBySlug(id[1]);
-        if (project != null) {
-          manager = new ProjectManager(project);
-          if (manager.canWrite(user)) {
-            value = "";
-            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            for (i = j = 0; j <= 31; i = j += 1) {
-              value += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            token = {
-              value: value,
-              time: Date.now(),
-              server_id: msg.server_id
-            };
-            if (this.server.server_tokens == null) {
-              this.server.server_tokens = {};
-            }
-            this.server.server_tokens[value] = token;
-            return this.send({
-              name: "get_server_token",
-              token: value,
-              request_id: msg.request_id
-            });
-          }
-        }
-      }
-    }
-  };
-
-  Session.prototype.serverTokensCleanup = function() {
-    var key, ref, value;
-    if (this.server.server_tokens != null) {
-      ref = this.server.server_tokens;
-      for (key in ref) {
-        value = ref[key];
-        if (value.time < Date.now() - 60000) {
-          delete this.server.server_tokens[key];
-        }
-      }
-    }
-  };
-
-  Session.prototype.checkServerToken = function(msg) {
-    this.serverTokensCleanup();
-    if (msg.token == null) {
-      return;
-    }
-    return this.serverTokenCheck(msg.token, msg.server_id, (function(_this) {
-      return function() {
-        return _this.send({
-          name: "check_server_token",
-          server_id: msg.server_id,
-          token: msg.token,
-          valid: true,
-          request_id: msg.request_id
-        });
-      };
-    })(this));
-  };
-
-  Session.prototype.serverTokenCheck = function(token, server_id, callback) {
-    var t;
-    if (this.server.server_tokens != null) {
-      t = this.server.server_tokens[token];
-      if ((t != null) && t.server_id === server_id) {
-        delete this.server.server_tokens[token];
-        return callback();
-      }
     }
   };
 

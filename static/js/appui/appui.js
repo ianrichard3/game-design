@@ -4,7 +4,7 @@ AppUI = (function() {
   function AppUI(app1) {
     var advanced, fn, fn1, j, k, len, len1, ref, ref1, s;
     this.app = app1;
-    this.sections = ["code", "sprites", "maps", "assets", "sounds", "music", "doc", "sync", "git", "options", "publish", "tabs"];
+    this.sections = ["code", "sprites", "maps", "assets", "sounds", "music", "doc", "git", "options", "publish", "tabs"];
     this.menuoptions = ["home", "explore", "projects", "help", "tutorials", "about", "usersettings"];
     ref = this.sections;
     fn = (function(_this) {
@@ -72,7 +72,6 @@ AppUI = (function() {
       };
     })(this));
     if (window.ms_standalone) {
-      document.getElementById("menu-community").parentNode.href = "https://microstudio.dev/community/";
       document.getElementById("projectoptions-users-content").style.display = "none";
       document.getElementById("publish-box-online").style.display = "none";
       document.getElementById("usersetting-block-nickname").style.display = "none";
@@ -90,7 +89,6 @@ AppUI = (function() {
         document.getElementById("createprojectoption-type").value = "app";
         document.getElementById("createprojectoption-language").value = window.ms_default_project_language || "microscript_v2";
         document.getElementById("createprojectoption-graphics").value = "M1";
-        document.getElementById("createprojectoption-networking").checked = false;
         document.getElementById("create-project-option-lib-matterjs").checked = false;
         document.getElementById("create-project-option-lib-cannonjs").checked = false;
         return _this.hideAdvanced();
@@ -171,7 +169,6 @@ AppUI = (function() {
             type: document.getElementById("createprojectoption-type").value,
             language: document.getElementById("createprojectoption-language").value,
             graphics: document.getElementById("createprojectoption-graphics").value,
-            networking: document.getElementById("createprojectoption-networking").checked,
             libs: libs
           });
           _this.hide("create-project-overlay");
@@ -487,9 +484,6 @@ AppUI = (function() {
     }
     if (section === "assets") {
       this.app.assets_manager.update();
-    }
-    if (section === "sync") {
-      this.app.sync.update();
     }
     if (section === "options") {
       this.app.options.update();

@@ -9,7 +9,6 @@ Content = require __dirname+"/content/content.js"
 WebApp = require __dirname+"/webapp.js"
 Session = require __dirname+"/session/session.js"
 RateLimiter = require __dirname+"/ratelimiter.js"
-BuildManager = require __dirname+"/build/buildmanager.js"
 WebSocket = require "ws"
 process = require "process"
 morgan = require "morgan"
@@ -181,7 +180,6 @@ class @Server
     @session_check = setInterval (()=>@sessionCheck()),10000
 
     @content = new Content @,db,new FileStorage "#{@app_data}/files"
-    @build_manager = new BuildManager @
     @webapp = new WebApp @,app
 
     for l in @webapp.languages

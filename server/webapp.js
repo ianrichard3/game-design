@@ -1,4 +1,4 @@
-var API, Concatenator, ExportFeatures, Fonts, ForumApp, Jimp, ProjectManager, SHA256, allowedTags, fs, pug, sanitizeHTML,
+var Concatenator, ExportFeatures, Fonts, Jimp, ProjectManager, SHA256, allowedTags, fs, pug, sanitizeHTML,
   indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
 SHA256 = require("crypto-js/sha256");
@@ -17,10 +17,6 @@ Fonts = require(__dirname + "/fonts.js");
 
 ExportFeatures = require(__dirname + "/app/exportfeatures.js");
 
-ForumApp = require(__dirname + "/forum/forumapp.js");
-
-API = require(__dirname + "/api.js");
-
 const { marked } = require("marked");
 
 sanitizeHTML = require("sanitize-html");
@@ -38,8 +34,6 @@ this.WebApp = (function() {
         return _this.manifest_template = data;
       };
     })(this));
-    this.forum_app = new ForumApp(this.server, this);
-    this.api = new API(this.server, this);
     this.concatenator = new Concatenator(this);
     this.fonts = new Fonts;
     this.export_features = new ExportFeatures(this);

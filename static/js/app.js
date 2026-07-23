@@ -35,7 +35,6 @@ App = (function() {
     this.options = new Options(this);
     this.tab_manager = new TabManager(this);
     this.lib_manager = new LibManager(this);
-    this.sync = new Sync(this);
     this.git_panel = new GitPanel(this);
     this.publish = new Publish(this);
     this.user_settings = new UserSettings(this);
@@ -316,7 +315,6 @@ App = (function() {
     this.options.projectOpened();
     this.tab_manager.projectOpened();
     this.lib_manager.projectOpened();
-    this.sync.projectOpened();
     this.git_panel.projectOpened();
     this.publish.loadProject(this.project);
     this.project.load();

@@ -43,8 +43,6 @@ class @RunWindow
     @listeners = []
     @project_access = new ProjectAccess @app,null,@
 
-    @server_bar = new ServerBar @app
-
   initWarnings:()->
     document.getElementById("console-options-warning-undefined").addEventListener "change",()=>
       @warning_undefined = document.getElementById("console-options-warning-undefined").checked
@@ -523,7 +521,6 @@ class @RunWindow
       document.getElementById("runtime").classList.remove("server-open")
       document.querySelector("#detach-button i").classList.add "fa-window-restore"
       document.querySelector("#detach-button i").classList.remove "fa-table"
-    @server_bar.update @app.project
 
   projectClosed:()->
     @floating_window.close()
@@ -702,137 +699,6 @@ class @RunWindow
     for l in @listeners
       l(event)
 
-
-class @ServerBar
-  constructor:(@app)->
-    document.getElementById("start-server-button").addEventListener "click",()=>@startServer(true)
-    document.getElementById("start-server-tab-button").addEventListener "click",()=>@startServer(false)
-    document.getElementById("stop-server-button").addEventListener "click",()=>@stopServer()
-
-  update:(@project)->
-    if @project? and @project.networking
-      if @watcher?
-        @watcher.stop()
-      @watcher = new ServerWatcher @app,@
-    else if @watcher?
-      @watcher.stop()
-      delete @watcher
-
-    @forced_stop = false
-
-  setStatus:(status,message)->
-    if status == "running" and not @forced_stop
-      document.querySelector("#serverbar .status").classList.add "running"
-      document.getElementById("start-server-button").style.display = "none"
-      document.getElementById("start-server-tab-button").style.display = "none"
-      document.getElementById("stop-server-button").style.display = "inline-block"
-    else
-      document.querySelector("#serverbar .status").classList.remove "running"
-      document.getElementById("start-server-button").style.display = "inline-block"
-      document.getElementById("start-server-tab-button").style.display = "inline-block"
-      document.getElementById("stop-server-button").style.display = "none"
-
-    document.querySelector("#serverbar .status-info").innerText = message
-
-  startServer:(embedded)->
-    @forced_stop = false
-    if @app.project?
-      url = dev_domain+"/"
-      url += @app.project.owner.nick+"/"
-      url += @app.project.slug+"/"
-      if not @app.project.public
-        url += @app.project.code + "/"
-      url += "?server"
-      if not embedded
-        @server_tab = window.open url
-      else
-        parent = document.getElementById("runtime-server-view")
-        parent.style.overflow = "hidden"
-        iframe = """<iframe src="#{url}" style="position: absolute ; top: 0 ; left: 0 ; width: 100% ; height: 100% ; border: none ;"></iframe>"""
-        parent.innerHTML = iframe
-        @app.appui.server_splitbar.closed1 = false
-        @app.appui.server_splitbar.update()
-        @app.appui.debug_splitbar.update()
-
-  stopServer:()->
-    document.getElementById("runtime-server-view").innerHTML = ""
-    @app.appui.server_splitbar.closed1 = true
-    @app.appui.server_splitbar.update()
-    @app.appui.debug_splitbar.update()
-
-    if @server_tab?
-      @server_tab.close()
-      @server_tab = null
-
-    @forced_stop = true
-
-class @ServerWatcher
-  constructor:(@app,@server_bar)->
-    @project = @app.project
-    @watch()
-    @interval = setInterval (()=>@watch()),1000
-
-  watch:()->
-    if @socket? and @socket.readyState <= 1
-      if @socket.readyState == 1
-        @sendCheck()
-    else
-      if @socket?
-        try
-          @socket.close()
-        catch err
-        delete @socket
-      @getRelay (address)=>@connect(address)
-
-  sendCheck:()->
-    try
-      @socket.send JSON.stringify
-        name: "mp_server_status"
-        server_id: """#{@project.owner.nick}/#{@project.slug}"""
-    catch err
-      console.error err
-
-  getRelay:(callback)->
-    if @relay?
-      return callback @relay
-
-    @app.client.sendRequest {
-      name: "get_relay_server"
-    },(msg)=>
-      if msg.name == "error"
-        @server_bar.setStatus "error",msg.error
-      else
-        address = msg.address
-        if address == "self"
-          address = location.origin.replace "http", "ws"
-        callback(@relay = address)
-
-  stop:()->
-    clearInterval @interval
-
-  connect:(address)->
-    try
-      @socket = new WebSocket(address)
-    catch err
-      @server_bar.setStatus "error",@app.translator.get("Relay service unreachable")
-
-    @socket.onerror = ()=>
-      @server_bar.setStatus "error",@app.translator.get("Relay service unreachable")
-
-    @socket.onmessage = (msg)=>
-      console.info "received: "+msg.data
-      try
-        msg = JSON.parse msg.data
-        if msg.name == "mp_server_status"
-          if msg.running
-            @server_bar.setStatus "running",@app.translator.get("Running")
-          else
-            @server_bar.setStatus "stopped",@app.translator.get("Server is not running")
-      catch err
-        console.error err
-
-    @socket.onopen = ()=>
-      @sendCheck()
 
 class @FloatingRunWindow
   constructor:(@app)->

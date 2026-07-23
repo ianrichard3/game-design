@@ -20,7 +20,6 @@ class @Options
     @selectInput "projectoption-graphics",(value)=>@graphicsChanged(value)
     @selectInput "projectoption-graphics-version",(value)=>@graphicsChanged(value)
     @selectInput "projectoption-language",(value)=>@languageChanged(value)
-    @checkInput "projectoption-networking",(value)=>@networkingChanged(value)
 
     advanced = document.getElementById("advanced-project-options-button")
     advanced.addEventListener "click",()=>
@@ -104,8 +103,6 @@ class @Options
     document.getElementById("projectoption-type").value = @app.project.type or "app"
     document.getElementById("projectoption-graphics").value = (@app.project.graphics or "M1").split("_")[0]
     document.getElementById("projectoption-language").value = @app.project.language or "microscript_v1_i"
-
-    document.getElementById("projectoption-networking").checked = @app.project.networking or false
 
     @library_tip.style.display = if @app.project.type == "library" then "block" else "none"
 
@@ -381,18 +378,6 @@ class @Options
       option: "language"
       value: value
     },(msg)=>
-
-  networkingChanged:(value)->
-    @app.project.networking = value
-    @app.runwindow.updateServerBar()
-    @app.publish.updateServerExport()
-    @app.client.sendRequest {
-      name: "set_project_option"
-      project: @app.project.id
-      option: "networking"
-      value: value
-    },(msg)=>
-
 
   setType:(type)->
     if type != @app.project.type

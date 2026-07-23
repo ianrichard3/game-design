@@ -93,7 +93,6 @@ this.RunWindow = (function() {
     this.message_listeners = {};
     this.listeners = [];
     this.project_access = new ProjectAccess(this.app, null, this);
-    this.server_bar = new ServerBar(this.app);
   }
 
   RunWindow.prototype.initWarnings = function() {
@@ -656,13 +655,12 @@ this.RunWindow = (function() {
     if ((this.app.project != null) && this.app.project.networking) {
       document.getElementById("runtime").classList.add("server-open");
       document.querySelector("#detach-button i").classList.remove("fa-window-restore");
-      document.querySelector("#detach-button i").classList.add("fa-table");
+      return document.querySelector("#detach-button i").classList.add("fa-table");
     } else {
       document.getElementById("runtime").classList.remove("server-open");
       document.querySelector("#detach-button i").classList.add("fa-window-restore");
-      document.querySelector("#detach-button i").classList.remove("fa-table");
+      return document.querySelector("#detach-button i").classList.remove("fa-table");
     }
-    return this.server_bar.update(this.app.project);
   };
 
   RunWindow.prototype.projectClosed = function() {
@@ -897,213 +895,6 @@ this.RunWindow = (function() {
   };
 
   return RunWindow;
-
-})();
-
-this.ServerBar = (function() {
-  function ServerBar(app) {
-    this.app = app;
-    document.getElementById("start-server-button").addEventListener("click", (function(_this) {
-      return function() {
-        return _this.startServer(true);
-      };
-    })(this));
-    document.getElementById("start-server-tab-button").addEventListener("click", (function(_this) {
-      return function() {
-        return _this.startServer(false);
-      };
-    })(this));
-    document.getElementById("stop-server-button").addEventListener("click", (function(_this) {
-      return function() {
-        return _this.stopServer();
-      };
-    })(this));
-  }
-
-  ServerBar.prototype.update = function(project) {
-    this.project = project;
-    if ((this.project != null) && this.project.networking) {
-      if (this.watcher != null) {
-        this.watcher.stop();
-      }
-      this.watcher = new ServerWatcher(this.app, this);
-    } else if (this.watcher != null) {
-      this.watcher.stop();
-      delete this.watcher;
-    }
-    return this.forced_stop = false;
-  };
-
-  ServerBar.prototype.setStatus = function(status, message) {
-    if (status === "running" && !this.forced_stop) {
-      document.querySelector("#serverbar .status").classList.add("running");
-      document.getElementById("start-server-button").style.display = "none";
-      document.getElementById("start-server-tab-button").style.display = "none";
-      document.getElementById("stop-server-button").style.display = "inline-block";
-    } else {
-      document.querySelector("#serverbar .status").classList.remove("running");
-      document.getElementById("start-server-button").style.display = "inline-block";
-      document.getElementById("start-server-tab-button").style.display = "inline-block";
-      document.getElementById("stop-server-button").style.display = "none";
-    }
-    return document.querySelector("#serverbar .status-info").innerText = message;
-  };
-
-  ServerBar.prototype.startServer = function(embedded) {
-    var iframe, parent, url;
-    this.forced_stop = false;
-    if (this.app.project != null) {
-      url = dev_domain + "/";
-      url += this.app.project.owner.nick + "/";
-      url += this.app.project.slug + "/";
-      if (!this.app.project["public"]) {
-        url += this.app.project.code + "/";
-      }
-      url += "?server";
-      if (!embedded) {
-        return this.server_tab = window.open(url);
-      } else {
-        parent = document.getElementById("runtime-server-view");
-        parent.style.overflow = "hidden";
-        iframe = "<iframe src=\"" + url + "\" style=\"position: absolute ; top: 0 ; left: 0 ; width: 100% ; height: 100% ; border: none ;\"></iframe>";
-        parent.innerHTML = iframe;
-        this.app.appui.server_splitbar.closed1 = false;
-        this.app.appui.server_splitbar.update();
-        return this.app.appui.debug_splitbar.update();
-      }
-    }
-  };
-
-  ServerBar.prototype.stopServer = function() {
-    document.getElementById("runtime-server-view").innerHTML = "";
-    this.app.appui.server_splitbar.closed1 = true;
-    this.app.appui.server_splitbar.update();
-    this.app.appui.debug_splitbar.update();
-    if (this.server_tab != null) {
-      this.server_tab.close();
-      this.server_tab = null;
-    }
-    return this.forced_stop = true;
-  };
-
-  return ServerBar;
-
-})();
-
-this.ServerWatcher = (function() {
-  function ServerWatcher(app, server_bar) {
-    this.app = app;
-    this.server_bar = server_bar;
-    this.project = this.app.project;
-    this.watch();
-    this.interval = setInterval(((function(_this) {
-      return function() {
-        return _this.watch();
-      };
-    })(this)), 1000);
-  }
-
-  ServerWatcher.prototype.watch = function() {
-    var err;
-    if ((this.socket != null) && this.socket.readyState <= 1) {
-      if (this.socket.readyState === 1) {
-        return this.sendCheck();
-      }
-    } else {
-      if (this.socket != null) {
-        try {
-          this.socket.close();
-        } catch (error1) {
-          err = error1;
-        }
-        delete this.socket;
-      }
-      return this.getRelay((function(_this) {
-        return function(address) {
-          return _this.connect(address);
-        };
-      })(this));
-    }
-  };
-
-  ServerWatcher.prototype.sendCheck = function() {
-    var err;
-    try {
-      return this.socket.send(JSON.stringify({
-        name: "mp_server_status",
-        server_id: this.project.owner.nick + "/" + this.project.slug
-      }));
-    } catch (error1) {
-      err = error1;
-      return console.error(err);
-    }
-  };
-
-  ServerWatcher.prototype.getRelay = function(callback) {
-    if (this.relay != null) {
-      return callback(this.relay);
-    }
-    return this.app.client.sendRequest({
-      name: "get_relay_server"
-    }, (function(_this) {
-      return function(msg) {
-        var address;
-        if (msg.name === "error") {
-          return _this.server_bar.setStatus("error", msg.error);
-        } else {
-          address = msg.address;
-          if (address === "self") {
-            address = location.origin.replace("http", "ws");
-          }
-          return callback(_this.relay = address);
-        }
-      };
-    })(this));
-  };
-
-  ServerWatcher.prototype.stop = function() {
-    return clearInterval(this.interval);
-  };
-
-  ServerWatcher.prototype.connect = function(address) {
-    var err;
-    try {
-      this.socket = new WebSocket(address);
-    } catch (error1) {
-      err = error1;
-      this.server_bar.setStatus("error", this.app.translator.get("Relay service unreachable"));
-    }
-    this.socket.onerror = (function(_this) {
-      return function() {
-        return _this.server_bar.setStatus("error", _this.app.translator.get("Relay service unreachable"));
-      };
-    })(this);
-    this.socket.onmessage = (function(_this) {
-      return function(msg) {
-        console.info("received: " + msg.data);
-        try {
-          msg = JSON.parse(msg.data);
-          if (msg.name === "mp_server_status") {
-            if (msg.running) {
-              return _this.server_bar.setStatus("running", _this.app.translator.get("Running"));
-            } else {
-              return _this.server_bar.setStatus("stopped", _this.app.translator.get("Server is not running"));
-            }
-          }
-        } catch (error1) {
-          err = error1;
-          return console.error(err);
-        }
-      };
-    })(this);
-    return this.socket.onopen = (function(_this) {
-      return function() {
-        return _this.sendCheck();
-      };
-    })(this);
-  };
-
-  return ServerWatcher;
 
 })();
 
