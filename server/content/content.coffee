@@ -1,7 +1,6 @@
 usage = require "pidusage"
 User = require __dirname+"/user.js"
 Project = require __dirname+"/project.js"
-Tag = require __dirname+"/tag.js"
 Token = require __dirname+"/token.js"
 Translator = require __dirname+"/translator.js"
 Cleaner = require __dirname+"/cleaner.js"
@@ -15,24 +14,15 @@ class @Content
     @tokens = {}
 
     @projects = {}
-    @tags = {}
-    @sorted_tags = []
 
     @project_count = 0
     @user_count = 0
     @guest_count = 0
 
     @load()
-    @hot_projects = []
-    @top_projects = []
-    @new_projects = []
-    @plugin_projects = []
-    @library_projects = []
-    @updatePublicProjects()
 
     console.info "Content loaded: #{@user_count} users and #{@project_count} projects"
 
-    @top_interval = setInterval (()=> @sortPublicProjects()),10001
     @log_interval = setInterval (()=> @statusLog()),6000
 
     @translator = new Translator @
@@ -40,7 +30,6 @@ class @Content
     @cleaner = new Cleaner @
 
   close:()->
-    clearInterval @top_interval
     clearInterval @log_interval
     @cleaner.stop() if @cleaner?
 
@@ -86,8 +75,6 @@ class @Content
     for record in projects
       @loadProject record
 
-    @initLikes()
-
     return
 
   loadUser:(record)->
@@ -108,20 +95,8 @@ class @Content
     project = new Project @,record
     if project.owner? and not project.deleted
       @projects[project.id] = project
-      @loadTags(project)
       @project_count++
     project
-
-  loadTags:(project)->
-    for t in project.tags
-      tag = @tags[t]
-      if not tag?
-        tag = new Tag(t)
-        @tags[t] = tag
-        @sorted_tags.push tag
-      tag.add project
-
-    return
 
   loadToken:(record)->
     data = record.get()
@@ -130,153 +105,13 @@ class @Content
       @tokens[token.value] = token
     token
 
-  initLikes:()->
-    for key,user of @users
-      for f in user.likes
-        if @projects[f]?
-          @projects[f].likes++
-
-    return
-
-  updatePublicProjects:()->
-    @hot_projects = []
-    @top_projects = []
-    @new_projects = []
-    @plugin_projects = []
-    @library_projects = []
-    for key,project of @projects
-      if project.public and not project.unlisted and project.owner.flags["validated"] and not project.deleted and not project.owner.flags["censored"]
-        @hot_projects.push project
-        @top_projects.push project
-        @new_projects.push project
-        if project.type == "plugin"
-          @plugin_projects.push project
-        if project.type == "library"
-          @library_projects.push project
-
-    @sortPublicProjects()
-
-  sortPublicProjects:()->
-    time = Date.now()
-    @top_projects.sort (a,b)-> b.likes-a.likes
-    @new_projects.sort (a,b)-> b.first_published-a.first_published
-    @sorted_tags.sort (a,b)-> b.uses+b.num_users*10-a.uses-a.num_users*10
-    @plugin_projects.sort (a,b)-> b.likes-a.likes
-    @library_projects.sort (a,b)-> b.likes-a.likes
-
-    return if @top_projects.length<5
-
-    now = Date.now()
-    maxLikes = Math.max(1,@top_projects[4].likes)
-
-    fade = (x)->
-      1-Math.max(0,Math.min(1,x))
-
-    note = (p)->
-      recent = fade (now-p.first_published)/1000/3600/24/4
-      rating = p.likes/maxLikes*(.15+2*fade((now-p.first_published)/1000/3600/24/180))
-      recent+rating
-
-    @hot_projects.sort (a,b)->
-      note(b)-note(a)
-
-    console.info "Sorting public projects took: #{Date.now()-time} ms"
-
-  setProjectPublic:(project,pub)->
-    project.set("public",pub)
-    if pub and project.first_published == 0
-      project.set "first_published",Date.now()
-
-    if pub and not project.unlisted
-      @hot_projects.push(project) if @hot_projects.indexOf(project) < 0
-      @top_projects.push(project) if @top_projects.indexOf(project) < 0
-      @new_projects.push(project) if @new_projects.indexOf(project) < 0
-      if project.type == "plugin" and @plugin_projects.indexOf(project) < 0
-        @plugin_projects.push project
-      if project.type == "library" and @library_projects.indexOf(project) < 0
-        @library_projects.push project
-      #@sortPublicProjects()
-    else
-      index = @hot_projects.indexOf(project)
-      if index>=0
-        @hot_projects.splice index,1
-      index = @top_projects.indexOf(project)
-      if index>=0
-        @top_projects.splice index,1
-      index = @new_projects.indexOf(project)
-      if index>=0
-        @new_projects.splice index,1
-
-      index = @plugin_projects.indexOf(project)
-      if index>=0
-        @plugin_projects.splice index,1
-
-      index = @library_projects.indexOf(project)
-      if index>=0
-        @library_projects.splice index,1
-
   setProjectType:(project,type)->
-    project.set("type",type)
-    if project.public
-      if project.type == "plugin"
-        if @plugin_projects.indexOf(project) < 0
-          @plugin_projects.push project
-      else
-        index = @plugin_projects.indexOf(project)
-        if index>=0
-          @plugin_projects.splice index,1
-
-      if project.type == "library"
-        if @library_projects.indexOf(project) < 0
-          @library_projects.push project
-      else
-        index = @library_projects.indexOf(project)
-        if index>=0
-          @library_projects.splice index,1
+    project.setType(type)
 
   projectDeleted:(project)->
     @project_count -= 1
 
-    index = @hot_projects.indexOf(project)
-    if index>=0
-      @hot_projects.splice index,1
-    index = @top_projects.indexOf(project)
-    if index>=0
-      @top_projects.splice index,1
-    index = @new_projects.indexOf(project)
-    if index>=0
-      @new_projects.splice index,1
-
-    index = @plugin_projects.indexOf(project)
-    if index>=0
-      @plugin_projects.splice index,1
-
-    index = @library_projects.indexOf(project)
-    if index>=0
-      @library_projects.splice index,1
-
-  addProjectTag:(project,t)->
-    tag = @tags[t]
-    if not tag?
-      tag = new Tag(t)
-      @tags[t] = tag
-      @sorted_tags.push tag
-    tag.add project
-
-  removeProjectTag:(project,t)->
-    tag = @tags[t]
-    if tag?
-      tag.remove project
-
   setProjectTags:(project,tags)->
-    for t in project.tags
-      if tags.indexOf(t)<0
-        @removeProjectTag(project,t)
-
-    for t in tags
-      if project.tags.indexOf(t)<0
-        @addProjectTag(project,t)
-
     project.set "tags",tags
 
   createUser:(data)->
@@ -339,17 +174,16 @@ class @Content
       slug: data.slug
       tags: []
       likes: []
-      public: data.public or false
+      public: false
       date_created: Date.now()
       last_modified: Date.now()
       deleted: false
       owner: owner.id
       orientation: data.orientation
       aspect: data.aspect
-      type: data.type
+      type: if data.type in ["app","library"] then data.type else "app"
       language: data.language
       graphics: data.graphics
-      networking: data.networking
       libs: data.libs
       tabs: data.tabs
       plugins: data.plugins

@@ -19,9 +19,6 @@ this.RateLimiter = (function() {
     this.map.set_local_folder_user = new RateLimiterClass(this, 60, 20);
     this.map.git_op_user = new RateLimiterClass(this, 5, 30);
     this.map.post_comment_user = new RateLimiterClass(this, 10, 10);
-    this.map.create_forum_post = new RateLimiterClass(this, 60, 10);
-    this.map.create_forum_reply = new RateLimiterClass(this, 10, 10);
-    this.map.search_forum = new RateLimiterClass(this, 1, 15);
     this.interval = setInterval(((function(_this) {
       return function() {
         return _this.log();

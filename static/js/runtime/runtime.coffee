@@ -202,8 +202,6 @@ class @Runtime
 
     namespace = location.pathname
     @vm = new MicroVM(meta,global,namespace,location.hash == "#transpiler")
-    if window.ms_use_server
-      @vm.context.global.ServerConnection = MPServerConnection
 
     @vm.context.global.system.pause = ()=>
       @listener.codePaused()

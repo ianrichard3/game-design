@@ -262,9 +262,6 @@ this.Runtime = (function() {
     }
     namespace = location.pathname;
     this.vm = new MicroVM(meta, global, namespace, location.hash === "#transpiler");
-    if (window.ms_use_server) {
-      this.vm.context.global.ServerConnection = MPServerConnection;
-    }
     this.vm.context.global.system.pause = (function(_this) {
       return function() {
         return _this.listener.codePaused();

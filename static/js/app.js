@@ -18,7 +18,6 @@ App = (function() {
     this.translator = new Translator(this);
     this.app_state = new AppState(this);
     this.appui = new AppUI(this);
-    this.explore = new Explore(this);
     this.client = new Client(this);
     this.user_progress = new UserProgress(this);
     this.about = new About(this);
@@ -39,8 +38,6 @@ App = (function() {
     this.publish = new Publish(this);
     this.user_settings = new UserSettings(this);
     this.connected = false;
-    this.tutorial = new TutorialWindow(this);
-    this.tutorials = new Tutorials(this);
     this.client.start();
   }
 
@@ -185,7 +182,6 @@ App = (function() {
       type: options.type,
       graphics: options.graphics,
       language: options.language,
-      networking: options.networking,
       libs: options.libs
     }, (function(_this) {
       return function(msg) {
@@ -249,7 +245,6 @@ App = (function() {
               _this.appui.showNotification(_this.translator.get("Project imported successfully"));
               _this.appui.resetImportButton();
               _this.importing = false;
-              _this.tab_manager.resetPlugins();
               return _this.lib_manager.resetLibs();
           }
         }), function(progress) {
@@ -297,7 +292,6 @@ App = (function() {
   };
 
   App.prototype.openProject = function(project, useraction) {
-    var t, tuto;
     if (useraction == null) {
       useraction = true;
     }
@@ -317,37 +311,18 @@ App = (function() {
     this.lib_manager.projectOpened();
     this.git_panel.projectOpened();
     this.publish.loadProject(this.project);
-    this.project.load();
-    if (!this.tutorial.shown) {
-      tuto = this.getProjectTutorial(project.slug);
-      if (tuto != null) {
-        t = new Tutorial(tuto);
-        return t.load((function(_this) {
-          return function() {
-            return _this.tutorial.start(t);
-          };
-        })(this));
-      }
-    }
+    return this.project.load();
   };
 
   App.prototype.deleteProject = function(project) {
-    if (project.owner.nick === this.nick) {
-      return this.client.sendRequest({
-        name: "delete_project",
-        project: project.id
-      }, (function(_this) {
-        return function(msg) {
-          return _this.updateProjectList();
-        };
-      })(this));
-    } else {
-      return this.client.sendRequest({
-        name: "remove_project_user",
-        project: project.id,
-        user: this.nick
-      });
-    }
+    return this.client.sendRequest({
+      name: "delete_project",
+      project: project.id
+    }, (function(_this) {
+      return function(msg) {
+        return _this.updateProjectList();
+      };
+    })(this));
   };
 
   App.prototype.projectTitleExists = function(title) {
@@ -433,20 +408,8 @@ App = (function() {
     }
   };
 
-  App.prototype.fetchPublicProjects = function() {
-    return this.client.sendRequest({
-      name: "get_public_projects",
-      ranking: "hot",
-      tags: []
-    }, (function(_this) {
-      return function(msg) {};
-    })(this));
-  };
-
   App.prototype.serverMessage = function(msg) {
     switch (msg.name) {
-      case "project_user_list":
-        return this.updateProjectUserList(msg);
       case "project_list":
         this.projects = msg.list;
         return this.appui.updateProjects();
@@ -491,13 +454,6 @@ App = (function() {
     }
   };
 
-  App.prototype.updateProjectUserList = function(msg) {
-    if ((this.project != null) && msg.project === this.project.id) {
-      this.project.users = msg.users;
-      return this.options.updateUserList();
-    }
-  };
-
   App.prototype.getUserSetting = function(setting) {
     if ((this.user != null) && (this.user.settings != null)) {
       return this.user.settings[setting];
@@ -519,46 +475,6 @@ App = (function() {
       }, (function(_this) {
         return function(msg) {};
       })(this));
-    }
-  };
-
-  App.prototype.setTutorialProgress = function(tutorial_id, progress) {
-    var tutorial_progress;
-    tutorial_progress = this.getUserSetting("tutorial_progress");
-    if (tutorial_progress == null) {
-      tutorial_progress = {};
-    }
-    tutorial_progress[tutorial_id] = progress;
-    return this.setUserSetting("tutorial_progress", tutorial_progress);
-  };
-
-  App.prototype.getTutorialProgress = function(tutorial_id) {
-    var tutorial_progress;
-    tutorial_progress = this.getUserSetting("tutorial_progress");
-    if (tutorial_progress == null) {
-      return 0;
-    } else {
-      return tutorial_progress[tutorial_id] || 0;
-    }
-  };
-
-  App.prototype.setProjectTutorial = function(project_slug, tutorial_id) {
-    var project_tutorial;
-    project_tutorial = this.getUserSetting("project_tutorial");
-    if (project_tutorial == null) {
-      project_tutorial = {};
-    }
-    project_tutorial[project_slug] = tutorial_id;
-    return this.setUserSetting("project_tutorial", project_tutorial);
-  };
-
-  App.prototype.getProjectTutorial = function(slug) {
-    var project_tutorial;
-    project_tutorial = this.getUserSetting("project_tutorial");
-    if (project_tutorial == null) {
-      return null;
-    } else {
-      return project_tutorial[slug];
     }
   };
 

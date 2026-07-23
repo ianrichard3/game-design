@@ -99,25 +99,7 @@ class @LibManager
     else
       your_libs.style.display = "block"
 
-    @app.client.sendRequest {
-      name:"get_public_libraries"
-    },(msg)=>
-      console.info msg.list
-
-      public_libs = document.querySelector "#public-libs"
-      public_list = document.querySelector "#public-libs .lib-list"
-
-      for p in msg.list
-        if not @known_libs[p.id]?
-          box = @createLibBox p
-          public_list.appendChild box
-
-      if public_list.childNodes.length == 0
-        public_libs.style.display = "none"
-      else
-        public_libs.style.display = "block"
-
-      callback()
+    callback()
 
   updateLibSelection:()->
     @fetchAvailableLibs ()=>

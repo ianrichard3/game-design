@@ -226,21 +226,6 @@ this.ProjectManager = (function() {
     return this.project.setFileInfo(file, "properties", properties);
   };
 
-  ProjectManager.prototype.propagateUserListChange = function() {
-    var i, len, ref, user;
-    ref = this.users;
-    for (i = 0, len = ref.length; i < len; i++) {
-      user = ref[i];
-      if (user != null) {
-        user.send({
-          name: "project_user_list",
-          project: this.project.id,
-          users: this.project.listUsers()
-        });
-      }
-    }
-  };
-
   ProjectManager.prototype.propagateLock = function(user, file) {
     var i, len, ref, u;
     ref = this.users;
@@ -337,55 +322,6 @@ this.ProjectManager = (function() {
           aspect: this.project.aspect,
           "public": this.project["public"]
         });
-      }
-    }
-  };
-
-  ProjectManager.prototype.inviteUser = function(source, user) {
-    var i, len, li, ref;
-    if (source.user === this.project.owner) {
-      this.project.inviteUser(user);
-      this.propagateUserListChange();
-      ref = user.listeners;
-      for (i = 0, len = ref.length; i < len; i++) {
-        li = ref[i];
-        li.getProjectList();
-      }
-    }
-  };
-
-  ProjectManager.prototype.acceptInvite = function(user) {
-    var i, j, len, len1, li, link, ref, ref1;
-    ref = this.project.users;
-    for (i = 0, len = ref.length; i < len; i++) {
-      link = ref[i];
-      if (user === link.user && !link.accepted) {
-        link.accepted = true;
-        return this.propagateUserListChange();
-        ref1 = user.listeners;
-        for (j = 0, len1 = ref1.length; j < len1; j++) {
-          li = ref1[j];
-          li.getProjectList();
-        }
-      }
-    }
-  };
-
-  ProjectManager.prototype.removeUser = function(source, user) {
-    var i, j, len, len1, li, link, ref, ref1;
-    if (source.user === this.project.owner || source.user === user) {
-      ref = this.project.users;
-      for (i = 0, len = ref.length; i < len; i++) {
-        link = ref[i];
-        if (user === link.user) {
-          link.remove();
-          return this.propagateUserListChange();
-          ref1 = user.listeners;
-          for (j = 0, len1 = ref1.length; j < len1; j++) {
-            li = ref1[j];
-            li.getProjectList();
-          }
-        }
       }
     }
   };

@@ -27,10 +27,6 @@ class @RateLimiter
 
     @map.post_comment_user = new RateLimiterClass(@,10,10) # max 10 new comments per 10 minutes
 
-    @map.create_forum_post = new RateLimiterClass(@,60,10) # max 10 new posts per hour
-    @map.create_forum_reply = new RateLimiterClass(@,10,10) # max 10 new replies per 10 minutes
-    @map.search_forum = new RateLimiterClass(@,1,15) # max 15 searches per minute
-
     @interval = setInterval (()=>@log()),5000
 
   accept:(type,key)->

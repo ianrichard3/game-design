@@ -28,7 +28,6 @@ this.User = (function() {
       this.patches = [];
       this.likes = data.likes || [];
       this.projects = {};
-      this.project_links = [];
       this.listeners = [];
       this.notifications = [];
       this.description = data.description || "";
@@ -127,26 +126,6 @@ this.User = (function() {
       size += project.getSize();
     }
     return size;
-  };
-
-  User.prototype.addProjectLink = function(link) {
-    return this.project_links.push(link);
-  };
-
-  User.prototype.listProjectLinks = function() {
-    return this.project_links;
-  };
-
-  User.prototype.removeLink = function(projectid) {
-    var i, j, len, link, ref;
-    ref = this.project_links;
-    for (i = j = 0, len = ref.length; j < len; i = ++j) {
-      link = ref[i];
-      if (link.project.id === projectid) {
-        this.project_links.splice(i, 1);
-        return;
-      }
-    }
   };
 
   User.prototype.findProject = function(id) {

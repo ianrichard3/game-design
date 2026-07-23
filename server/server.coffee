@@ -13,8 +13,6 @@ WebSocket = require "ws"
 process = require "process"
 morgan = require "morgan"
 
-BanIP = require __dirname+"/banip.js"
-
 class @Server
   constructor:(@config={},@callback)->
     process.chdir __dirname
@@ -24,8 +22,6 @@ class @Server
     @mailer =    # STUB
       sendMail:(recipient,subject,text)->
         console.info "send mail to:#{recipient} subject:#{subject} text:#{text}"
-
-    @ban_ip = new BanIP(this)
 
     @stats =    # STUB
       set:(name,value)->
@@ -70,12 +66,6 @@ class @Server
 
     @rate_limiter = new RateLimiter @
     app.use (req,res,next)=>
-      # if @ban_ip.isBanned( req.ip )
-      #   return res.status(429).send "Too many requests"
-
-      # if req.path == "/"
-      #   @ban_ip.request( req.ip )
-
       if @rate_limiter.accept("request","general") and @rate_limiter.accept("request_ip",req.ip)
         next()
       else
@@ -162,12 +152,6 @@ class @Server
     @sessions = []
 
     @io.on "connection",(socket,request)=>
-      # if @ban_ip.isBanned(request.ip)
-      #   try
-      #     socket.close()
-      #   catch err
-      #   return
-
       socket.request = request
       if @PROXY
         socket.remoteAddress = request.headers['x-forwarded-for'] or request.connection.remoteAddress

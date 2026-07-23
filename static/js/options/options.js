@@ -63,18 +63,6 @@ this.Options = (function() {
         }
       };
     })(this));
-    this.app.appui.setAction("add-project-user", (function(_this) {
-      return function() {
-        return _this.addProjectUser();
-      };
-    })(this));
-    document.getElementById("add-project-user-nick").addEventListener("keyup", (function(_this) {
-      return function(event) {
-        if (event.keyCode === 13) {
-          return _this.addProjectUser();
-        }
-      };
-    })(this));
     list = document.querySelectorAll("#project-option-libs input");
     fn = (function(_this) {
       return function(input) {
@@ -178,14 +166,8 @@ this.Options = (function() {
     this.library_tip.style.display = this.app.project.type === "library" ? "block" : "none";
     this.updateOptionalLibs();
     this.updateSecretCodeLine();
-    this.updateUserList();
     this.updateLocalFolderUI();
     this.app.project.addListener(this);
-    if (window.ms_standalone || this.app.user.flags.guest) {
-      document.querySelector("#projectoptions-users-content").style.display = "none";
-    } else {
-      document.querySelector("#projectoptions-users-content").style.display = "block";
-    }
     return this.updateGraphicsVersion();
   };
 
@@ -434,7 +416,6 @@ this.Options = (function() {
     }, (function(_this) {
       return function(msg) {};
     })(this));
-    this.app.tab_manager.resetPlugins();
     return this.app.lib_manager.resetLibs();
   };
 
@@ -561,57 +542,6 @@ this.Options = (function() {
       }, (function(_this) {
         return function(msg) {};
       })(this));
-    }
-  };
-
-  Options.prototype.addProjectUser = function() {
-    var nick;
-    nick = document.getElementById("add-project-user-nick").value;
-    if (nick.trim().length > 0) {
-      this.app.client.sendRequest({
-        name: "invite_to_project",
-        project: this.app.project.id,
-        user: nick
-      }, (function(_this) {
-        return function(msg) {
-          return console.info(msg);
-        };
-      })(this));
-      return document.getElementById("add-project-user-nick").value = "";
-    }
-  };
-
-  Options.prototype.updateUserList = function() {
-    var div, fn, j, len, ref, user;
-    div = document.getElementById("project-user-list");
-    div.innerHTML = "";
-    ref = this.app.project.users;
-    fn = (function(_this) {
-      return function(user) {
-        var e, name, remove;
-        e = document.createElement("div");
-        e.classList.add("user");
-        name = document.createElement("div");
-        name.classList.add("username");
-        name.innerHTML = user.nick + " " + (user.accepted ? "<i class='fa fa-check'></i>" : "<i class='fa fa-clock'></i>");
-        remove = document.createElement("div");
-        remove.classList.add("remove");
-        remove.innerHTML = "<i class='fa fa-times'></i> Remove";
-        remove.addEventListener("click", function(event) {
-          return _this.app.client.sendRequest({
-            name: "remove_project_user",
-            project: _this.app.project.id,
-            user: user.nick
-          });
-        });
-        e.appendChild(remove);
-        e.appendChild(name);
-        return div.appendChild(e);
-      };
-    })(this);
-    for (j = 0, len = ref.length; j < len; j++) {
-      user = ref[j];
-      fn(user);
     }
   };
 

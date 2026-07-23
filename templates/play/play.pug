@@ -82,8 +82,6 @@ html
       var ms_libs = !{game.libs} ;
       window.ms_in_editor = !{debug} ;
       window.ms_project_id = '!{game.author}/!{game.name}' ;
-      window.ms_use_server = !{game.networking} ;
-
     each file in javascript_files
       script(src=file)
 
@@ -125,4 +123,3 @@ html
         window.player = new Player() ;
         document.body.focus() ;
       }) ;
-

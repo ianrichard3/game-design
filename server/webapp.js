@@ -37,7 +37,6 @@ this.WebApp = (function() {
     this.concatenator = new Concatenator(this);
     this.fonts = new Fonts;
     this.export_features = new ExportFeatures(this);
-    this.server.build_manager.createLinks(this.app);
     this.home_page = {};
     this.languages = ["en", "fr", "pl", "de", "it", "pt", "ru", "es"];
     home_exp = "^(\\/";
@@ -47,8 +46,8 @@ this.WebApp = (function() {
         home_exp += "|";
       }
     }
-    this.reserved = ["explore", "documentation", "projects", "about", "login", "user", "tutorials\\/examples", "tutorials\\/community"];
-    this.reserved_exact = ["tutorials"];
+    this.reserved = ["documentation", "projects", "about", "login", "user"];
+    this.reserved_exact = [];
     ref1 = this.reserved;
     for (k = 0, len = ref1.length; k < len; k++) {
       r = ref1[k];
@@ -59,12 +58,11 @@ this.WebApp = (function() {
       r = ref2[m];
       home_exp += "\\/" + r + "|\\/" + r + "\\/|";
     }
-    home_exp += "\\/tutorial\\/[^\\/\\|\\?\\&\\.]+\\/[^\\/\\|\\?\\&\\.]+(\\/([^\\/\\|\\?\\&\\.]+\\/?)?)|";
-    home_exp += "(\\/i\\/.*))$";
+    home_exp += ")$";
     console.info("home_exp = " + home_exp);
     this.app.get(new RegExp(home_exp), (function(_this) {
       return function(req, res) {
-        var dev_domain, l, lang, len2, n, page, project, ref3, run_domain, s, translator, user;
+        var dev_domain, l, lang, len2, n, ref3, run_domain, s, translator;
         if (_this.ensureDevArea(req, res)) {
           return;
         }
@@ -93,44 +91,7 @@ this.WebApp = (function() {
           res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
           res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
         }
-        if (s[1] === "i") {
-          user = s[2];
-          project = s[3];
-          user = _this.server.content.findUserByNick(user);
-          if (user == null) {
-            _this.return404(req, res);
-            return null;
-          }
-          project = user.findProjectBySlug(project);
-          if ((project == null) || !project["public"]) {
-            _this.return404(req, res);
-            return null;
-          }
-          translator = _this.server.content.translator.getTranslator(lang);
-          page = _this.home_funk({
-            name: project.title,
-            javascript_files: _this.concatenator.getHomeJSFiles(),
-            css_files: _this.concatenator.getHomeCSSFiles(),
-            translator: translator,
-            language: lang,
-            standalone: _this.server.config.standalone === true,
-            languages: _this.languages,
-            graphics_options: _this.concatenator.alt_players,
-            optional_libs: _this.concatenator.optional_libs,
-            language_engines: _this.concatenator.language_engines,
-            translation: _this.server.content.translator.languages[lang] != null ? _this.server.content.translator.languages[lang]["export"]() : "{}",
-            title: translator.get("%PROJECT% - by %USER%").replace("%PROJECT%", project.title).replace("%USER%", user.nick),
-            description: project.description,
-            long_description: project.description,
-            poster: (project.files != null) && (project.files["sprites/poster.png"] != null) ? "https://microstudio.io/" + user.nick + "/" + project.slug + "/sprites/poster.png" : "https://microstudio.io/" + user.nick + "/" + project.slug + "/sprites/icon.png",
-            project_moderation: _this.server.config.project_moderation === true,
-            dev_domain: dev_domain,
-            run_domain: run_domain,
-            default_project_language: _this.server.config.default_project_language,
-            tutorials_root_url: _this.server.config.tutorials_root_url
-          });
-          return res.send(page);
-        } else if ((_this.home_page[lang] == null) || !_this.server.use_cache) {
+        if ((_this.home_page[lang] == null) || !_this.server.use_cache) {
           translator = _this.server.content.translator.getTranslator(lang);
           _this.home_page[lang] = _this.home_funk({
             name: "microStudio",
@@ -151,8 +112,7 @@ this.WebApp = (function() {
             project_moderation: _this.server.config.project_moderation === true,
             dev_domain: dev_domain,
             run_domain: run_domain,
-            default_project_language: _this.server.config.default_project_language,
-            tutorials_root_url: _this.server.config.tutorials_root_url
+            default_project_language: _this.server.config.default_project_language
           });
         }
         return res.send(_this.home_page[lang]);
@@ -293,12 +253,6 @@ this.WebApp = (function() {
           embedder_policy = true;
           console.info("embedder_policy is true");
         }
-        if ((req.query != null) && (req.query.server != null)) {
-          if (_this.ensureDevArea(req, res)) {
-            return;
-          }
-          return _this.serverBox(req, res);
-        }
         if (!embedder_policy) {
           if (_this.ensureIOArea(req, res)) {
             return;
@@ -312,11 +266,7 @@ this.WebApp = (function() {
         file = user.id + "/" + project.id + "/ms/main.ms";
         encoding = "text";
         manager = _this.getProjectManager(project);
-        if ((req.query != null) && (req.query.srv != null)) {
-          jsfiles = _this.concatenator.getServerJSFiles();
-        } else {
-          jsfiles = _this.concatenator.getPlayerJSFiles(project.graphics);
-        }
+        jsfiles = _this.concatenator.getPlayerJSFiles(project.graphics);
         ref4 = project.libs;
         for (o = 0, len3 = ref4.length; o < len3; o++) {
           lib = ref4[o];
@@ -383,7 +333,6 @@ this.WebApp = (function() {
                         orientation: project.orientation,
                         aspect: project.aspect,
                         graphics: project.graphics,
-                        networking: project.networking || false,
                         libs: JSON.stringify(project.libs),
                         description: project.description,
                         poster: poster
@@ -778,38 +727,6 @@ this.WebApp = (function() {
     } else {
       return false;
     }
-  };
-
-  WebApp.prototype.serverBox = function(req, res) {
-    var access, host, pathcode, project, server_url, user;
-    access = this.getProjectAccess(req, res);
-    if (access == null) {
-      return;
-    }
-    user = access.user;
-    project = access.project;
-    pathcode = project["public"] ? project.slug : project.slug + "/" + project.code;
-    if ((this.serverbox_funk == null) || !this.server.use_cache) {
-      this.serverbox_funk = pug.compileFile("../templates/play/serverbox.pug");
-    }
-    host = req.get("host").replace(".dev", ".io");
-    if (this.server.config.run_domain != null) {
-      server_url = this.server.config.run_domain + req.path + "?srv";
-    } else {
-      server_url = req.protocol + '://' + host + req.url.replace("?server", "?srv");
-    }
-    return res.send(this.serverbox_funk({
-      user: user,
-      server_url: server_url,
-      standalone: this.server.config.standalone === true,
-      game: {
-        name: project.slug,
-        pathcode: pathcode,
-        title: project.title,
-        author: user.nick,
-        description: project.description
-      }
-    }));
   };
 
   WebApp.prototype.getUserPublicPage = function(req, res) {

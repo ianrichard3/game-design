@@ -1,4 +1,4 @@
-var BanIP, BuildManager, Content, DB, FileStorage, RateLimiter, Session, WebApp, WebSocket, compression, cookieParser, express, fs, morgan, path, process,
+var Content, DB, FileStorage, RateLimiter, Session, WebApp, WebSocket, compression, cookieParser, express, fs, morgan, path, process,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 compression = require("compression");
@@ -23,15 +23,11 @@ Session = require(__dirname + "/session/session.js");
 
 RateLimiter = require(__dirname + "/ratelimiter.js");
 
-BuildManager = require(__dirname + "/build/buildmanager.js");
-
 WebSocket = require("ws");
 
 process = require("process");
 
 morgan = require("morgan");
-
-BanIP = require(__dirname + "/banip.js");
 
 this.Server = (function() {
   function Server(config, callback1) {
@@ -45,7 +41,6 @@ this.Server = (function() {
         return console.info("send mail to:" + recipient + " subject:" + subject + " text:" + text);
       }
     };
-    this.ban_ip = new BanIP(this);
     this.stats = {
       set: function(name, value) {},
       max: function(name, value) {},
@@ -216,7 +211,6 @@ this.Server = (function() {
       };
     })(this)), 10000);
     this.content = new Content(this, db, new FileStorage(this.app_data + "/files"));
-    this.build_manager = new BuildManager(this);
     this.webapp = new WebApp(this, app);
     ref = this.webapp.languages;
     for (i = 0, len = ref.length; i < len; i++) {

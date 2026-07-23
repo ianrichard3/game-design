@@ -9,22 +9,6 @@ AUX_FOLDERS = ["ms","sprites","maps","sounds","sounds_th","music","music_th","as
 isTextFile = (name)-> name.endsWith(".ms") or name.endsWith(".json") or name.endsWith(".md")
 
 
-class ProjectLink
-  constructor:(@project,data)->
-    @user = @project.content.users[data.user]
-    @accepted = data.accepted
-    if @user?
-      @user.addProjectLink @
-
-  accept:()->
-    if not @accepted
-      @accepted = true
-      @project.saveUsers()
-
-  remove:()->
-    @project.removeUser @
-    @user.removeLink @project.id
-
 class @Project
   constructor:(@content,@record)->
     data = @record.get()
@@ -44,7 +28,10 @@ class @Project
       @flags = data.flags or {}
       @description = data.description or ""
       @likes = 0
-      @public = data.public
+      if data.public
+        data.public = false
+        @record.set data
+      @public = false
       @unlisted = data.unlisted
       @date_created = data.date_created
       @last_modified = data.last_modified
@@ -59,21 +46,14 @@ class @Project
       @tabs = data.tabs
       @plugins = data.plugins
       @libraries = data.libraries
-      @networking = data.networking
       @properties = data.properties or {}
-      @type = data.type or "app"
+      @type = if data.type in ["app","library"] then data.type else "app"
       @users = []
       @comments = new Comments @,data.comments
       if not @deleted
         @owner = @content.users[data.owner]
         if @owner?
           @owner.addProject @
-
-        if data.users?
-          for u in data.users
-            link = new ProjectLink @,u
-            if link.user? and not link.user.flags.deleted
-              @users.push link
 
       if data.files? and not @deleted
         @files = data.files
@@ -137,7 +117,9 @@ class @Project
       false
 
   setType:(type)->
+    return false if type not in ["app","library"]
     @set "type",type
+    true
 
   setOrientation:(orientation)->
     @set "orientation",orientation
@@ -162,51 +144,11 @@ class @Project
       delete @properties[prop]
     @set "properties",@properties
     
-  saveUsers:()->
-    data = []
-    for link in @users
-      data.push
-        user: link.user.id
-        accepted: link.accepted
-
-    @set "users",data,false
-
-  inviteUser:(user)->
-    return if user == @owner
-    for link in @users
-      return if user == link.user
-    link = new ProjectLink @,
-      user: user.id
-      accepted: false
-    if link.user?
-      @users.push link
-      @saveUsers()
-
-  removeUser:(link)->
-    index = @users.indexOf link
-    if index>=0
-      @users.splice index,1
-      @saveUsers()
-
-  listUsers:()->
-    list = []
-    for link in @users
-      if link.user? and not link.user.flags.deleted
-        list.push
-          id: link.user.id
-          nick: link.user.nick
-          accepted: link.accepted
-    list
-
   delete:()->
     @deleted = true
     @record.set
       deleted: true
     @content.projectDeleted @
-    for i in [@users.length-1..0] by -1
-      link = @users[i]
-      link.remove()
-
     if @local_folder
       # a linked project's storage is the user's own folder (their git repo) -
       # deleting the project must never touch it, just stop watching it
@@ -282,7 +224,6 @@ class @Project
     type: @type
     language: @language
     graphics: @graphics
-    networking: @networking
     libs: @libs
     tabs: @tabs
     plugins: @plugins

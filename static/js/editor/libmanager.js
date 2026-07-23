@@ -105,30 +105,7 @@ this.LibManager = (function() {
     } else {
       your_libs.style.display = "block";
     }
-    return this.app.client.sendRequest({
-      name: "get_public_libraries"
-    }, (function(_this) {
-      return function(msg) {
-        var j, len1, public_libs, public_list, ref1;
-        console.info(msg.list);
-        public_libs = document.querySelector("#public-libs");
-        public_list = document.querySelector("#public-libs .lib-list");
-        ref1 = msg.list;
-        for (j = 0, len1 = ref1.length; j < len1; j++) {
-          p = ref1[j];
-          if (_this.known_libs[p.id] == null) {
-            box = _this.createLibBox(p);
-            public_list.appendChild(box);
-          }
-        }
-        if (public_list.childNodes.length === 0) {
-          public_libs.style.display = "none";
-        } else {
-          public_libs.style.display = "block";
-        }
-        return callback();
-      };
-    })(this));
+    return callback();
   };
 
   LibManager.prototype.updateLibSelection = function() {

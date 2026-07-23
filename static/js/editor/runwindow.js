@@ -132,9 +132,6 @@ this.RunWindow = (function() {
 
   RunWindow.prototype.detach = function() {
     var b, device, wincontent;
-    if (this.app.project.networking) {
-      return new FloatingRunWindow(this.app);
-    }
     if (this.detached) {
       return this.floating_window.close();
     } else {
@@ -646,25 +643,11 @@ this.RunWindow = (function() {
       iframe.parentElement.removeChild(iframe);
     }
     this.terminal.clear();
-    this.updateServerBar();
-    this.app.appui.server_splitbar.update();
     return this.app.appui.debug_splitbar.update();
   };
 
-  RunWindow.prototype.updateServerBar = function() {
-    if ((this.app.project != null) && this.app.project.networking) {
-      document.getElementById("runtime").classList.add("server-open");
-      document.querySelector("#detach-button i").classList.remove("fa-window-restore");
-      return document.querySelector("#detach-button i").classList.add("fa-table");
-    } else {
-      document.getElementById("runtime").classList.remove("server-open");
-      document.querySelector("#detach-button i").classList.add("fa-window-restore");
-      return document.querySelector("#detach-button i").classList.remove("fa-table");
-    }
-  };
-
   RunWindow.prototype.projectClosed = function() {
-    var i, iframe, len, list, w;
+    var iframe;
     this.floating_window.close();
     iframe = document.getElementById("runiframe");
     if (iframe != null) {
@@ -672,16 +655,6 @@ this.RunWindow = (function() {
     }
     document.getElementById("take-picture-button").style.display = "none";
     this.hideAll();
-    this.server_bar.update(null);
-    list = document.querySelectorAll(".fw-run");
-    for (i = 0, len = list.length; i < len; i++) {
-      w = list[i];
-      if (w.parentNode != null) {
-        w.parentNode.removeChild(w);
-      }
-    }
-    document.querySelector("#runtime-server-view").innerHTML = "";
-    this.app.appui.server_splitbar.closed1 = true;
   };
 
   RunWindow.prototype.hideQRCode = function() {
@@ -895,59 +868,5 @@ this.RunWindow = (function() {
   };
 
   return RunWindow;
-
-})();
-
-this.FloatingRunWindow = (function() {
-  function FloatingRunWindow(app) {
-    var bounds, code, div, height, id, left, origin, parent, top, url, width;
-    this.app = app;
-    origin = "" + (location.origin.replace(".dev", ".io"));
-    if (this.app.project.properties && this.app.project.properties.embedder_policy) {
-      console.info("replacing origin to .dev");
-      origin = origin.replace(".io", ".dev");
-    }
-    code = this.app.project["public"] ? "" : this.app.project.code + "/";
-    url = origin + "/" + this.app.project.owner.nick + "/" + this.app.project.slug + "/" + code;
-    bounds = document.querySelector("#device").getBoundingClientRect();
-    if (FloatingRunWindow.offset == null) {
-      FloatingRunWindow.offset = 0;
-      FloatingRunWindow.id = 1;
-    }
-    width = bounds.width / 2;
-    height = bounds.height / 2;
-    left = FloatingRunWindow.offset;
-    top = FloatingRunWindow.offset;
-    if (FloatingRunWindow.id < 5) {
-      id = FloatingRunWindow.id - 1;
-      left = (id % 2) * bounds.width / 2;
-      top = Math.floor(id / 2) * bounds.height / 2;
-    }
-    FloatingRunWindow.offset = (FloatingRunWindow.offset + 40) % 200;
-    div = document.createElement("div");
-    div.style = "top: " + top + "px; left: " + left + "px; width: " + width + "px; height: " + height + "px; display: block; z-index: 11;";
-    div.classList.add("floating-window");
-    div.classList.add("fw-run");
-    div.style.position = "absolute";
-    div.id = id = "fw-run-" + FloatingRunWindow.id++;
-    div.innerHTML = "<div class=\"content\" style=\"padding: 1px ; top: 0px ; bottom: 0px ; left: 0 ; right: 0 ;\">\n  <iframe allow=\"autoplay " + origin + "; gamepad " + origin + "; midi " + origin + "\" src=\"" + url + "?debug\" style=\"width: 100% ; height: 100% ; border: none ;\" class=\"\"></iframe>\n</div>\n<div class=\"titlebar\" style=\"background: rgba(128,128,128,.25)\">\n  <div class=\"title\">Client " + (FloatingRunWindow.id - 1) + "</div>\n  <i class=\"minify fas fa-times-circle\" style=\"background:none;\"></i>\n</div>\n<div class=\"navigation\" style=\"background: none ; pointer-events: none ;\"><i class=\"resize fa fa-grip-horizontal\" style=\"pointer-events: auto ; color: rgba(255,255,255,.5) ; background: rgba(0,0,0,.25) ; border-radius: 40px ; right: -5px ; bottom: -5px ;\"></i></div>";
-    parent = document.querySelector("#runtime .devicecontainer");
-    parent.appendChild(div);
-    div.querySelector(".titlebar").addEventListener("mouseup", (function(_this) {
-      return function() {
-        console.info("focusing window");
-        return div.querySelector("iframe").contentWindow.focus();
-      };
-    })(this));
-    new FloatingWindow(this.app, id, {
-      floatingWindowClosed: (function(_this) {
-        return function() {
-          return parent.removeChild(div);
-        };
-      })(this)
-    });
-  }
-
-  return FloatingRunWindow;
 
 })();

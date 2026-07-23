@@ -32,7 +32,6 @@ this.Project = (function() {
     this.tabs = data.tabs;
     this.plugins = data.plugins;
     this.libraries = data.libraries;
-    this.networking = data.networking;
     this.properties = data.properties || {};
     this.flags = data.flags || {};
     this.local_folder = data.local_folder || null;

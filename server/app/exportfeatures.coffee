@@ -126,7 +126,6 @@ class @ExportFeatures
     type: project.type
     language: project.language
     graphics: project.graphics
-    networking: project.networking
     libs: project.libs
     tabs: project.tabs
     plugins: project.plugins
@@ -259,8 +258,6 @@ class @ExportFeatures
             libs: JSON.stringify project.libs
             code: fullsource
             language: project.language
-            use_server: project.networking or false
-
         zip.file("index.html",html)
 
         mani = @webapp.manifest_template.toString().replace(/SCOPE/g,"")

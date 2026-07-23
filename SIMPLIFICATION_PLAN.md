@@ -7,19 +7,8 @@ feature already shipped: `server/filestorage/folderstorage.coffee`, `folderwatch
 `server/session/gitmanager.coffee`, the Git panel, and the "Local folder" project option),
 while the app's only remaining job is to stay open and hot-reload the running game.
 
-**⚠️ Not verified yet.** The last handful of edits (Phase 1, native app build farm / Publish
-trim section) were made but never compiled or boot-tested — work was paused mid-session.
-**Before continuing or trusting this state, run:**
-
-```
-cd server
-npm run compile   # must exit clean, zero errors
-npm start         # boots on a random port in standalone mode; open it, confirm no crash
-```
-
-If compile fails, the error will point at the file — most likely something in
-`server/webapp.coffee`, `server/app/exportfeatures.coffee`, or `server/session/session.coffee`
-since those had the most recent edits.
+**Verified 2026-07-23:** `cd server && npm run compile` exits cleanly. A short `npm start`
+boot completed initialization without an exception and was then deliberately terminated.
 
 ## Decisions already locked in (don't re-ask)
 
@@ -50,7 +39,7 @@ since those had the most recent edits.
   (built previously with a different toolchain); recompiling brought them back in sync
   (verified: output-style diff only, ES5 IIFE vs ES6 class, not a behavior change).
 
-### Phase 1 — Remove community/social/multiplayer/build-farm layer — 🚧 IN PROGRESS
+### Phase 1 — Remove community/social/multiplayer/build-farm layer — ✅ DONE
 
 **Done:**
 - **Forum**: `server/forum/` deleted. Removed from `content/content.coffee` (require +
@@ -79,15 +68,14 @@ since those had the most recent edits.
   `appui.coffee` and `options.coffee` (`networkingChanged`). Removed the `ServerBar`/
   `ServerWatcher` classes from `static/js/editor/runwindow.coffee` (multiplayer status
   widget — was polling the now-deleted `mp_server_status`/`get_relay_server` messages) and
-  the now-nonfunctional `#serverbar` button markup from `templates/code.pug` — **left the
-  `#runtime-server-view`/`#runtime-server-splitbar` container elements in place**, they're
-  structurally required as positional `childNodes` by `SplitBar`'s constructor
-  (`static/js/util/splitbar.coffee`), just permanently empty/collapsed now. Also removed the
-  dead `?server`/`?srv` query-param branches from `webapp.coffee`'s play route (they only
-  ever existed to serve a headless "server box" for multiplayer hosting) and deleted the now-
-  orphaned `serverBox` method + `templates/play/serverbox.pug`. The `networking` field on
-  `Project`/`project.coffee` was deliberately left in place but inert — harmless boolean,
-  not stripped.
+  the now-nonfunctional `#serverbar` button markup from `templates/code.pug`. Follow-up
+  audit removed the remaining relay client/server runtime, `/server.js` and Node-server-export
+  bundles, empty server-console split pane, the special floating-client window, and every
+  `networking` field/WS mutation. Existing persisted projects are normalized to private,
+  non-networked state on load. Also removed the dead `?server`/`?srv` query-param branches
+  from `webapp.coffee`'s play route (they only ever existed to serve a headless "server box"
+  for multiplayer hosting) and deleted the now-orphaned `serverBox` method +
+  `templates/play/serverbox.pug`.
 - **Native app build farm**: `server/build/` deleted entirely. Removed from `server.coffee`
   (`BuildManager` require + `@build_manager` instantiation), `session/session.coffee`
   (`build_project`/`get_build_status`/`start_builder` handlers + their 3 bodies), and
@@ -97,50 +85,26 @@ since those had the most recent edits.
   and the `?server=1` branch in `addPublishHTML()` that dispatched to it. The HTML5 export
   path (`addProjectFilesExport`/`addPublishHTML`'s main branch) is untouched.
 
-**Not started yet (still to do in Phase 1):**
-- **Publish trimmed to HTML-only (client side)** — `templates/publish.pug` still has the
-  native-build buttons, the Node-server export button, and the "make public"/Explore listing
-  box (`#publish-box-online`). `static/js/publish/appbuild.coffee` (native build UI class)
-  still exists and is still in `concatenator.coffee`'s bundle list — needs deleting.
-  `static/js/publish/publish.coffee` needs trimming to just the HTML5 export button/flow.
-- **Community / explore / public-project browsing** — NOT STARTED. Still need to delete
-  `static/js/explore/` (`Explore`, `ProjectDetails` — this file also contains the moderation
-  UI, which goes with it), the Explore tab/menu wiring in `appui.coffee`/`home.pug`, and
-  server-side the public-projects aggregation in `content/content.coffee`
-  (`hot_projects`/`top_projects`/`new_projects`/tags/`sortPublicProjects` interval loop) plus
-  the `get_public_*`/`toggle_like`/`clone_public_project`/`set_project_approved`/
-  `set_user_approved` WS handlers in `session.coffee`. Keep `project.public`/`unlisted`
-  fields themselves (harmless booleans) and keep the generic `cloneProject` (non-public
-  duplicate) — only the public-facing aggregation goes. Note: `static/css/explore.css` also
-  needs deleting (Phase 4 already planned to sweep CSS, but fine to do now too).
-- **Tutorials** — NOT STARTED. Delete `static/js/tutorial/`, `tutorialwindow.coffee`,
-  `tutorials.coffee`, `tutorialspage.coffee`, `highlighter.coffee`; remove their
-  `@menuoptions`/routing entries in `appui.coffee`/`appstate.coffee`; remove the floating
-  tutorial window markup in `home.pug`; no-op the `checkTutorial()` banner call in
-  `doceditor.coffee` rather than chasing further. `app.coffee` currently has
-  `@tutorial = new TutorialWindow @`, `@tutorials = new Tutorials @`, and an
-  `if not @tutorial.shown` auto-start block in `openProject()` — all need removing.
-- **Project collaboration/invite UI** — NOT STARTED. Remove the invite/accept/remove-user WS
-  handlers in `session.coffee`, `ProjectLink`/`inviteUser`/`removeUser`/`listUsers` in
-  `content/project.coffee`, and the invite-list UI in `options.coffee`/`projectoptions.pug`.
-  **Do not touch** `canRead`/`canWrite`/`canReadProject` in `session/projectmanager.coffee` —
-  they degrade correctly to "owner-only" once `project.users` is always empty, no changes
-  needed there. The "project-tabs" plugin-sharing half of `tabmanager.coffee`/
-  `pluginview.coffee` (embedding *other* community projects as tabs) goes with this; the
-  harmless "show/hide sidebar sections" checkboxes in the same file can stay or go with
-  Phase 4.
-- **Dead code, free wins** — NOT STARTED. `server/banip.coffee` and `server/dumbapp.coffee`
-  are already fully dead (zero live references, confirmed by research, not touched by
-  anything above) — just delete both files. Also remove the `express-force-https` and
-  `websocket` npm dependencies from `server/package.json` (confirmed zero `require` call
-  sites — the real WS implementation used everywhere is the separate `ws` package).
-- Also: the 3 forum-specific rate-limiter buckets (`create_forum_post`/`create_forum_reply`/
-  `search_forum`) in `server/ratelimiter.coffee` were deliberately left alone — harmless now-
-  unused buckets, the whole file gets deleted in Phase 3 anyway, no need to touch twice.
+**Completed in this continuation:**
+- **Publish client**: reduced the Publish tab to HTML5 export only; removed native-build,
+  Node-server export, public-listing controls, `AppBuild`, and its bundle entry.
+- **Community and tutorials**: deleted Explore, public-project ranking and WS handlers,
+  public likes/cloning/moderation, tutorial code/routes/markup, and their CSS. The local
+  user's own library picker remains available; community libraries and plug-ins do not.
+- **Collaboration**: deleted invite/link persistence and UI, active-user state, invite WS
+  handlers, and public plug-in tabs. `TabManager` now only manages ordinary sidebar tabs;
+  owner-only permission checks remain unchanged.
+- **Dead code**: deleted BanIP, DumbApp, and the unused Tag index (including generated JS).
+  Removed `express-force-https` and `websocket` and refreshed the lockfile.
+- **Audit follow-up**: deleted the orphaned forum frontend/PWA assets and handlers, stale
+  community/tutorial achievements, a duplicate `change_password` registration, and outdated
+  homepage claims. Public project sharing is now disabled at creation, has no WS mutation
+  endpoint, and is durably reset for old projects when they load.
+- **Verification**: `npm run compile` passes. A 15-second `npm start` boot completed cleanly
+  with the current local default configuration (Phase 3 will make standalone the only mode).
 
-**Checkpoint (once the rest of Phase 1 is done):** `npm run compile` clean, server boots in
-standalone mode, a project opens and its Code/Sprites/Maps/Sounds/Music/Assets/Doc/Git/
-Settings tabs all still work; the sidebar no longer shows Explore/Sync/Tutorials/Community.
+**Checkpoint passed:** the app compiles and starts without the Explore, Sync, Tutorial, or
+community/project-invite surfaces.
 
 ### Phase 2 — Narrow language and graphics surface — NOT STARTED
 

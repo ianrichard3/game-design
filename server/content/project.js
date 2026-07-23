@@ -1,4 +1,4 @@
-var AUX_FOLDERS, CONTENT_FOLDERS, Comments, FolderStorage, JobQueue, ProjectLink, fs, isTextFile;
+var AUX_FOLDERS, CONTENT_FOLDERS, Comments, FolderStorage, JobQueue, fs, isTextFile;
 
 Comments = require(__dirname + "/comments.js");
 
@@ -16,35 +16,9 @@ isTextFile = function(name) {
   return name.endsWith(".ms") || name.endsWith(".json") || name.endsWith(".md");
 };
 
-ProjectLink = (function() {
-  function ProjectLink(project, data) {
-    this.project = project;
-    this.user = this.project.content.users[data.user];
-    this.accepted = data.accepted;
-    if (this.user != null) {
-      this.user.addProjectLink(this);
-    }
-  }
-
-  ProjectLink.prototype.accept = function() {
-    if (!this.accepted) {
-      this.accepted = true;
-      return this.project.saveUsers();
-    }
-  };
-
-  ProjectLink.prototype.remove = function() {
-    this.project.removeUser(this);
-    return this.user.removeLink(this.project.id);
-  };
-
-  return ProjectLink;
-
-})();
-
 this.Project = (function() {
   function Project(content1, record) {
-    var data, j, len, link, ref, u;
+    var data, ref;
     this.content = content1;
     this.record = record;
     data = this.record.get();
@@ -66,7 +40,11 @@ this.Project = (function() {
       this.flags = data.flags || {};
       this.description = data.description || "";
       this.likes = 0;
-      this["public"] = data["public"];
+      if (data["public"]) {
+        data["public"] = false;
+        this.record.set(data);
+      }
+      this["public"] = false;
       this.unlisted = data.unlisted;
       this.date_created = data.date_created;
       this.last_modified = data.last_modified;
@@ -81,25 +59,14 @@ this.Project = (function() {
       this.tabs = data.tabs;
       this.plugins = data.plugins;
       this.libraries = data.libraries;
-      this.networking = data.networking;
       this.properties = data.properties || {};
-      this.type = data.type || "app";
+      this.type = (ref = data.type) === "app" || ref === "library" ? data.type : "app";
       this.users = [];
       this.comments = new Comments(this, data.comments);
       if (!this.deleted) {
         this.owner = this.content.users[data.owner];
         if (this.owner != null) {
           this.owner.addProject(this);
-        }
-        if (data.users != null) {
-          ref = data.users;
-          for (j = 0, len = ref.length; j < len; j++) {
-            u = ref[j];
-            link = new ProjectLink(this, u);
-            if ((link.user != null) && !link.user.flags.deleted) {
-              this.users.push(link);
-            }
-          }
         }
       }
       if ((data.files != null) && !this.deleted) {
@@ -190,7 +157,11 @@ this.Project = (function() {
   };
 
   Project.prototype.setType = function(type) {
-    return this.set("type", type);
+    if (type !== "app" && type !== "library") {
+      return false;
+    }
+    this.set("type", type);
+    return true;
   };
 
   Project.prototype.setOrientation = function(orientation) {
@@ -223,82 +194,16 @@ this.Project = (function() {
     return this.set("properties", this.properties);
   };
 
-  Project.prototype.saveUsers = function() {
-    var data, j, len, link, ref;
-    data = [];
-    ref = this.users;
-    for (j = 0, len = ref.length; j < len; j++) {
-      link = ref[j];
-      data.push({
-        user: link.user.id,
-        accepted: link.accepted
-      });
-    }
-    return this.set("users", data, false);
-  };
-
-  Project.prototype.inviteUser = function(user) {
-    var j, len, link, ref;
-    if (user === this.owner) {
-      return;
-    }
-    ref = this.users;
-    for (j = 0, len = ref.length; j < len; j++) {
-      link = ref[j];
-      if (user === link.user) {
-        return;
-      }
-    }
-    link = new ProjectLink(this, {
-      user: user.id,
-      accepted: false
-    });
-    if (link.user != null) {
-      this.users.push(link);
-      return this.saveUsers();
-    }
-  };
-
-  Project.prototype.removeUser = function(link) {
-    var index;
-    index = this.users.indexOf(link);
-    if (index >= 0) {
-      this.users.splice(index, 1);
-      return this.saveUsers();
-    }
-  };
-
-  Project.prototype.listUsers = function() {
-    var j, len, link, list, ref;
-    list = [];
-    ref = this.users;
-    for (j = 0, len = ref.length; j < len; j++) {
-      link = ref[j];
-      if ((link.user != null) && !link.user.flags.deleted) {
-        list.push({
-          id: link.user.id,
-          nick: link.user.nick,
-          accepted: link.accepted
-        });
-      }
-    }
-    return list;
-  };
-
   Project.prototype["delete"] = function() {
-    var folder, i, j, link, ref, ref1;
+    var folder, ref;
     this.deleted = true;
     this.record.set({
       deleted: true
     });
     this.content.projectDeleted(this);
-    for (i = j = ref = this.users.length - 1; j >= 0; i = j += -1) {
-      link = this.users[i];
-      link.remove();
-    }
     if (this.local_folder) {
-      if ((ref1 = this.manager) != null) {
-        ref1.stopFolderWatcher();
+      if ((ref = this.manager) != null) {
+        ref.stopFolderWatcher();
       }
     } else {
       folder = this.owner.id + "/" + this.id;
@@ -385,7 +290,6 @@ this.Project = (function() {
       type: this.type,
       language: this.language,
       graphics: this.graphics,
-      networking: this.networking,
       libs: this.libs,
       tabs: this.tabs,
       plugins: this.plugins,

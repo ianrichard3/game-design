@@ -62,12 +62,4 @@
     <xhtml:link rel="alternate" hreflang="pt" href="https://microstudio.dev/pt/"/>
   </url>
 
-  <url>
-    <loc>https://microstudio.dev/community/</loc>
-  </url>
-
-  <url>
-    <loc>https://microstudio.dev/fr/community/</loc>
-  </url>
-
 </urlset>

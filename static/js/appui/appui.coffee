@@ -16,10 +16,8 @@ class AppUI
 
     @menuoptions = [
       "home"
-      "explore"
       "projects"
       "help"
-      "tutorials"
       "about"
       "usersettings"
     ]
@@ -47,9 +45,7 @@ class AppUI
         e = document.getElementById("menu-#{s}")
         if e?
           e.addEventListener "click",(event)=>
-            if window.ms_standalone and s == "explore"
-              window.open "https://microstudio.dev/explore/","_blank"
-            else if window.ms_standalone and s == "home"
+            if window.ms_standalone and s == "home"
               window.open "https://microstudio.dev","_blank"
             else
               @setMainSection(s,true)
@@ -61,8 +57,6 @@ class AppUI
         @setMainSection("home",true)
 
     if window.ms_standalone
-      document.getElementById("projectoptions-users-content").style.display = "none"
-      document.getElementById("publish-box-online").style.display = "none"
       document.getElementById("usersetting-block-nickname").style.display = "none"
       document.getElementById("usersetting-block-email").style.display = "none"
       document.getElementById("usersetting-block-newsletter").style.display = "none"
@@ -111,9 +105,6 @@ class AppUI
 
       input.click()
 
-    @setAction "home-action-explore",()=>
-      @setMainSection("explore")
-
     @setAction "home-action-create",()=>
       @setMainSection("projects")
 
@@ -152,10 +143,6 @@ class AppUI
     @runtime_splitbar = new SplitBar("runtime-container","vertical")
     @runtime_splitbar.auto = 1.5
     @runtime_splitbar.initPosition(67)
-    @server_splitbar = new SplitBar "runtime-terminal","horizontal"
-    @server_splitbar.initPosition(50)
-    @server_splitbar.closed1 = true
-    
     @debug_splitbar = new SplitBar("terminal-debug-container","horizontal")
     @debug_splitbar.closed2 = true
     @debug_splitbar.splitbar_size = 12
@@ -336,19 +323,11 @@ class AppUI
     if menuitem?
       menuitem.classList.add "selected"
 
-    list = document.querySelectorAll ".menuitem-plugin"
-    for item in list
-      if item.id != "menuitem-#{section}"
-        item.classList.remove "selected"
-
-    @app.tab_manager.setTabView section
-
     if section == "sprites"
       @app.sprite_editor.spriteview.windowResized()
 
     if section == "code"
       @code_splitbar.update()
-      @server_splitbar.update()
       @debug_splitbar.update()
       @runtime_splitbar.update()
       @app.runwindow.windowResized()
@@ -364,7 +343,6 @@ class AppUI
     if section == "doc"
       @doc_splitbar.update()
       @app.doc_editor.editor.resize()
-      @app.doc_editor.checkTutorial()
 
     if section == "sounds"
       @app.sound_editor.update()
@@ -405,15 +383,10 @@ class AppUI
         @app.app_state.pushState "home",if @app.translator.lang == "fr" then "/fr" else "/"
       else if section == "projects" and @project? and @current_section?
         @app.app_state.pushState "project.#{@project.slug}.#{@current_section}","/projects/#{@project.slug}/#{@current_section}/"
-      else if section == "explore" and @app.explore.project
-        p = @app.explore.project
-        @app.app_state.pushState "project_details","/i/#{p.owner}/#{p.slug}/",{project: p}
       else
         name = {"help":"documentation"}[section] || section
         if name == "documentation"
           @app.documentation.pushState()
-        else if name == "tutorials"
-          @app.tutorials.tutorials_page.pushState()
         else
           @app.app_state.pushState name,"/#{name}/"
 
@@ -434,15 +407,9 @@ class AppUI
 
     if section == "projects"
       @code_splitbar.update()
-      @server_splitbar.update()
       @debug_splitbar.update()
       @runtime_splitbar.update()
       @app.runwindow.windowResized()
-
-    if section == "explore"
-      @app.explore.update()
-    else
-      @app.explore.closed()
 
     if section == "help"
       @app.documentation.updateViewPos()
@@ -450,10 +417,6 @@ class AppUI
     if section == "about"
       @app.about.setSection("about")
 
-    if section == "tutorials"
-      @app.tutorials.load()
-
-    #@app.explore.closeDetails() if section != "explore"
     @app.runwindow.hideAll()
     return
 
@@ -655,7 +618,6 @@ class AppUI
     if @app.user.info.size>@app.user.info.max_storage
       text = @app.translator.get "Your account is out of space!"
       text += " "+@app.translator.get("You are using %USED% of the %ALLOWED% you are allowed." ).replace("%USED%",@displayByteSize(@app.user.info.size)).replace("%ALLOWED%",@displayByteSize(@app.user.info.max_storage))
-      text += " <a href='https://microstudio.dev/community/tips/your-account-is-out-of-space/109/' target='_blank'>#{@app.translator.get("More info...")}</a>"
       @addWarningMessage text,undefined,"out_of_storage",false
     #if not @project?
     #  @show "myprojects"
@@ -787,45 +749,17 @@ class AppUI
     document.querySelector("#projects-search input").value = ""
     @app.projects.sort (a,b)-> b.last_modified-a.last_modified
 
-    pending = []
     count = 0
 
     for p in @app.projects
-      if p.owner.nick == @app.nick or p.accepted
-        element = @createProjectBox p
-        list.appendChild element
-        count++
-      else
-        pending.push p
+      element = @createProjectBox p
+      list.appendChild element
+      count++
 
     if count == 0
       h2 = document.createElement "h2"
       h2.innerHTML = @app.translator.get("Your projects will be displayed here.")+"<br />"+@app.translator.get("Time to create your first project!")
       list.appendChild h2
-
-    if pending.length>0
-      div = document.createElement "div"
-      div.classList.add "project-invites-list"
-
-      div.innerHTML = "<h2><i class='fa fa-users'></i> Pending invitations</h2>"
-
-      for p in pending
-        e = document.createElement "div"
-        e.classList.add "invite"
-
-        e.innerHTML = """
-        <div class="buttons">
-           <div class="accept" title="Accept" onclick="app.appui.acceptInvite(#{p.id})"><i class="fa fa-check"></i></div><div class="reject" title="Reject" onclick="app.appui.rejectInvite(#{p.id})"><i class="fa fa-times"></i></div>
-        </div>
-        <img src="/#{p.owner.nick}/#{p.slug}/#{p.code}/icon.png"/> #{p.title} by #{p.owner.nick}
-        """
-
-        div.appendChild e
-
-
-
-      list.insertBefore div,list.firstChild
-      ## create list of projects to accept or reject
 
     if @logged_callback?
       c = @logged_callback
@@ -834,23 +768,6 @@ class AppUI
     else
       @app.app_state.projectsFetched()
 
-    return
-
-  acceptInvite:(projectid)->
-    for p in @app.projects
-      if p.id == projectid and p.owner.nick != @app.nick and not p.accepted
-        @app.client.sendRequest
-          name: "accept_invite"
-          project: projectid
-    return
-
-  rejectInvite:(projectid)->
-    for p in @app.projects
-      if p.id == projectid and p.owner.nick != @app.nick
-        @app.client.sendRequest
-          name: "remove_project_user"
-          user: @app.nick
-          project: projectid
     return
 
   setProject:(@project,useraction=true)->
@@ -873,9 +790,7 @@ class AppUI
     @debug_splitbar.closed2 = true
     @debug_splitbar.update()
     @runtime_splitbar.initPosition(50)
-    @server_splitbar.initPosition(50)
     @app.runwindow.terminal.start()
-    @updateActiveUsers()
     @doc_splitbar.initPosition(50)
 
   updateProjectTitle:()->
@@ -896,42 +811,12 @@ class AppUI
           icon.addImage img,144
     else if change == "title" or change == "public"
       @updateProjectTitle()
-    else if change == "locks"
-      @updateActiveUsers()
-
-  updateActiveUsers:()->
-    element = document.querySelector(".projectheader #active-project-users")
-    list = element.childNodes
-    names = {}
-    for i in [list.length-1..0] by -1
-      e = list[i]
-      name = e.id.split("-")[2]
-      if not @project.friends[name]?
-        element.removeChild(e)
-      else
-        names[name] = true
-
-    for key of @project.friends
-      if not names[key]
-        div = document.createElement "div"
-        div.style = "background:#{@createFriendColor(key)}"
-        div.id = "active-user-#{key}"
-        i = document.createElement "i"
-        i.classList.add "fa"
-        i.classList.add "fa-user"
-        div.appendChild i
-        span = document.createElement "span"
-        span.innerText = key
-        div.appendChild span
-        element.appendChild div
-
-    return
 
   createFriendColor:(friend)->
     seed = 137
     for i in [0..friend.length-1] by 1
       seed = (seed+friend.charCodeAt(i)*31+97)%360
-    return "hsl(#{seed},50%,50%)"
+    "hsl(#{seed},50%,50%)"
 
   startSaveStatus:()->
     @savetick = 0
@@ -1167,28 +1052,3 @@ class AppUI
           document.getElementById("projectview").classList.add "sidebar-collapsed"
           window.dispatchEvent(new Event('resize'))
     ),500
-      
-
-  createProjectLikesButton:(element,project)->
-    e = element.querySelector(".likes-button")
-    if e
-      e.parentNode.removeChild(e)
-  
-    likes = document.createElement "div"
-    likes.classList.add "likes-button"
-    likes.innerHTML = "<i class='fa fa-thumbs-up'></i> "+project.likes
-    likes.classList.add("liked") if project.liked
-    element.appendChild likes
-
-    likes.addEventListener "click",()=>
-      event.stopImmediatePropagation()
-      if not @app.user.flags.validated
-        return alert(@app.translator.get("Validate your e-mail address to enable votes."))
-      @app.client.sendRequest {
-        name:"toggle_like"
-        project: project.id
-      },(msg)=>
-        if msg.name == "project_likes"
-          project.likes = msg.likes
-          project.liked = msg.liked
-          @createProjectLikesButton(element,project)

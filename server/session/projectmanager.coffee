@@ -142,15 +142,6 @@ class @ProjectManager
   setFileProperties:(file,properties)->
     @project.setFileInfo(file,"properties",properties)
 
-  propagateUserListChange:()->
-    for user in @users
-      if user?
-        user.send
-          name:"project_user_list"
-          project: @project.id
-          users: @project.listUsers()
-    return
-
   propagateLock:(user,file)->
     for u in @users
       if u? and u != user
@@ -216,33 +207,6 @@ class @ProjectManager
           aspect: @project.aspect
           public: @project.public
 
-    return
-
-  inviteUser:(source,user)->
-    if source.user == @project.owner
-      @project.inviteUser user
-      @propagateUserListChange()
-      for li in user.listeners
-        li.getProjectList()
-    return
-
-  acceptInvite:(user)->
-    for link in @project.users
-      if user == link.user and not link.accepted
-        link.accepted = true
-        return @propagateUserListChange()
-        for li in user.listeners
-          li.getProjectList()
-    return
-
-  removeUser:(source,user)->
-    if source.user == @project.owner or source.user == user
-      for link in @project.users
-        if user == link.user
-          link.remove()
-          return @propagateUserListChange()
-          for li in user.listeners
-            li.getProjectList()
     return
 
   listFiles:(folder,callback)->

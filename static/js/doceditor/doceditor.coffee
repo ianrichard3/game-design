@@ -16,15 +16,6 @@ class @DocEditor
     @editor.getSession().on "change",()=>
       @editorContentsChanged()
 
-    document.getElementById("doceditor-start-tutorial").addEventListener "click",()=>
-      p = @app.project
-      if p.public
-        url = location.origin+"/tutorial/#{p.owner.nick}/#{p.slug}/"
-      else
-        url = location.origin+"/tutorial/#{p.owner.nick}/#{p.slug}/#{p.code}/"
-
-      window.open url,"_blank"
-
   editorContentsChanged:()->
     src = @editor.getValue()
     e = document.getElementById("doc-render")
@@ -72,7 +63,4 @@ class @DocEditor
     @checkTutorial()
 
   checkTutorial:()->
-    if @app.project? and @app.project.type == "tutorial"
-      document.getElementById("doceditor-start-tutorial").style.display = "block"
-    else
-      document.getElementById("doceditor-start-tutorial").style.display = "none"
+    return

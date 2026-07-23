@@ -71,9 +71,6 @@ class @RunWindow
     document.getElementById("console-options-warning-condition").checked = @warning_condition
 
   detach:()->
-    if @app.project.networking
-      return new FloatingRunWindow(@app)
-
     if @detached
       @floating_window.close()
     else
@@ -508,19 +505,7 @@ class @RunWindow
     if iframe?
       iframe.parentElement.removeChild iframe
     @terminal.clear()
-    @updateServerBar()
-    @app.appui.server_splitbar.update()
     @app.appui.debug_splitbar.update()
-
-  updateServerBar:()->
-    if @app.project? and @app.project.networking
-      document.getElementById("runtime").classList.add("server-open")
-      document.querySelector("#detach-button i").classList.remove "fa-window-restore"
-      document.querySelector("#detach-button i").classList.add "fa-table"
-    else
-      document.getElementById("runtime").classList.remove("server-open")
-      document.querySelector("#detach-button i").classList.add "fa-window-restore"
-      document.querySelector("#detach-button i").classList.remove "fa-table"
 
   projectClosed:()->
     @floating_window.close()
@@ -529,15 +514,6 @@ class @RunWindow
       iframe.parentElement.removeChild iframe
     document.getElementById("take-picture-button").style.display = "none"
     @hideAll()
-    @server_bar.update(null)
-    list = document.querySelectorAll ".fw-run"
-    for w in list
-      if w.parentNode?
-        w.parentNode.removeChild w
-        
-
-    document.querySelector("#runtime-server-view").innerHTML = ""
-    @app.appui.server_splitbar.closed1 = true
     return
 
   hideQRCode:()->
@@ -699,63 +675,4 @@ class @RunWindow
     for l in @listeners
       l(event)
 
-
-class @FloatingRunWindow
-  constructor:(@app)->
-    origin = "#{location.origin.replace(".dev",".io")}"
-    if @app.project.properties and @app.project.properties.embedder_policy
-      console.info "replacing origin to .dev"
-      origin = origin.replace(".io",".dev")
-
-    code = if @app.project.public then "" else "#{@app.project.code}/"
-    url = "#{origin}/#{@app.project.owner.nick}/#{@app.project.slug}/#{code}"
-
-    bounds = document.querySelector("#device").getBoundingClientRect()
-    if not FloatingRunWindow.offset?
-      FloatingRunWindow.offset = 0
-      FloatingRunWindow.id = 1
-
-    width = bounds.width/2
-    height = bounds.height/2
-    left = FloatingRunWindow.offset
-    top = FloatingRunWindow.offset
-
-    if FloatingRunWindow.id < 5
-      id = FloatingRunWindow.id-1
-      left = (id%2)*bounds.width/2
-      top = Math.floor(id/2)*bounds.height/2
-
-    FloatingRunWindow.offset = (FloatingRunWindow.offset+40) % 200
-
-    div = document.createElement "div"
-    div.style = "top: #{top}px; left: #{left}px; width: #{width}px; height: #{height}px; display: block; z-index: 11;"
-    div.classList.add "floating-window"
-    div.classList.add "fw-run"
-    div.style.position = "absolute"
-    div.id = id = "fw-run-"+FloatingRunWindow.id++
-    div.innerHTML = """
-<div class="content" style="padding: 1px ; top: 0px ; bottom: 0px ; left: 0 ; right: 0 ;">
-  <iframe allow="autoplay #{origin}; gamepad #{origin}; midi #{origin}" src="#{url}?debug" style="width: 100% ; height: 100% ; border: none ;" class=""></iframe>
-</div>
-<div class="titlebar" style="background: rgba(128,128,128,.25)">
-  <div class="title">Client #{FloatingRunWindow.id-1}</div>
-  <i class="minify fas fa-times-circle" style="background:none;"></i>
-</div>
-<div class="navigation" style="background: none ; pointer-events: none ;"><i class="resize fa fa-grip-horizontal" style="pointer-events: auto ; color: rgba(255,255,255,.5) ; background: rgba(0,0,0,.25) ; border-radius: 40px ; right: -5px ; bottom: -5px ;"></i></div>
-"""
-    parent = document.querySelector "#runtime .devicecontainer"
-    parent.appendChild(div)
-    div.querySelector(".titlebar").addEventListener "mouseup",()=>
-      console.info "focusing window"
-      div.querySelector("iframe").contentWindow.focus()
-
-    new FloatingWindow @app,id,{
-      floatingWindowClosed:()=>
-        parent.removeChild div
-    }
-    
-
-
-        
-      
     

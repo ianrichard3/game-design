@@ -14,15 +14,10 @@ class @Concatenator
       res.setHeader("Content-Type", "text/javascript")
       res.send @player_js_concat
 
-    @webapp.app.get /^\/server.js$/, (req,res)=>
-      res.setHeader("Content-Type", "text/javascript")
-      res.send @server_js_concat
-
     @alt_player_base = [
       '/js/util/canvas2d.js'
       "/js/languages/microscript/random.js"
       "/js/runtime/microvm.js"
-      "/js/runtime/mpserverconnection.js"
       '/js/runtime/runtime.js'
       '/js/runtime/watcher.js'
       '/js/runtime/projectinterface.js'
@@ -196,13 +191,11 @@ class @Concatenator
       "/css/music.css"
       "/css/maps.css"
       "/css/publish.css"
-      "/css/explore.css"
       "/css/options.css"
       "/css/git.css"
       "/css/user.css"
       "/css/media.css"
       "/css/terminal.css"
-      "/css/tutorial.css"
       "/css/md.css"
       "/css/common.css"
     ]
@@ -243,15 +236,11 @@ class @Concatenator
 
       "/js/options/options.js"
       "/js/options/tabmanager.js"
-      "/js/options/pluginview.js"
 
       "/js/git/gitpanel.js"
 
       "/js/publish/publish.js"
-      "/js/publish/appbuild.js"
 
-      "/js/explore/explore.js"
-      "/js/explore/projectdetails.js"
       "/js/user/usersettings.js"
       "/js/user/translationapp.js"
       "/js/user/progress.js"
@@ -308,18 +297,12 @@ class @Concatenator
       "/js/app.js"
       "/js/appstate.js"
 
-      "/js/tutorial/tutorials.js"
-      "/js/tutorial/tutorial.js"
-      "/js/tutorial/tutorialwindow.js"
-      "/js/tutorial/highlighter.js"
-      "/js/tutorial/tutorialspage.js"
     ]
 
     @player_js = [
       '/js/util/canvas2d.js'
 
       "/js/languages/microscript/random.js"
-      "/js/runtime/mpserverconnection.js"
       "/js/runtime/microvm.js"
       '/js/runtime/runtime.js'
       '/js/runtime/watcher.js'
@@ -340,34 +323,6 @@ class @Concatenator
       '/js/play/playerclient.js'
     ]
 
-    @server_js = [
-      "/js/languages/microscript/random.js"
-      "/js/runtime/microvm.js"
-      '/js/runtime/watcher.js'
-      '/js/runtime/assetmanager.js'
-      "/js/runtime/mpserver.js"
-      '/js/runtime/runtime_server.js'
-      '/js/runtime/watcher.js'
-      '/js/runtime/map.js'
-      '/js/terminal/terminal.js'
-      '/js/debug/watch.js'
-      '/js/play/server.js'
-      '/js/play/serverclient.js'
-    ]
- 
-    @server_export_js = [
-      "/js/languages/microscript/random.js"
-      "/js/runtime/microvm.js"
-      '/js/runtime/watcher.js'
-      '/js/runtime/assetmanager.js'
-      "/js/play/server_export/mpserver.js"
-      '/js/runtime/runtime_server.js'
-      '/js/runtime/watcher.js'
-      '/js/runtime/map.js'
-      '/js/debug/watch.js'
-      '/js/play/server_export/server.js'
-    ]
- 
     for key,value of @alt_players
       @["#{key}_js"] = @alt_player_base.concat(value.scripts)
       if value.versions
@@ -379,8 +334,6 @@ class @Concatenator
   refresh:()->
     @concat(@webapp_js,"webapp_js_concat")
     @concat(@player_js,"player_js_concat")
-    @concat(@server_js,"server_js_concat")
-    @concat(@server_export_js,"server_export_js_concat")
     for key,value of @alt_players
       @concat(@["#{key}_js"],"#{key}_js_concat")
       if value.versions?
@@ -428,21 +381,12 @@ class @Concatenator
         else
           @player_js
 
-  getServerJSFiles:()->
-    if @webapp.server.use_cache and @server_js_concat?
-      ["/server.js"]
-    else
-      @server_js
-
   getEngineExport:(graphics)->
     if graphics? and typeof graphics == "string"
       graphics = graphics.toLowerCase()
       @["#{graphics}_js_concat"] or @player_js_concat
     else
       @player_js_concat
-
-  getServerEngineExport:()->
-    @server_export_js_concat
 
   findOptionalLib:(lib)->
     if typeof lib != "string"

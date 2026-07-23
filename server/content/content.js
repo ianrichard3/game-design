@@ -1,12 +1,10 @@
-var Cleaner, DEFAULT_CODE, Project, Tag, Token, Translator, User, usage;
+var Cleaner, DEFAULT_CODE, Project, Token, Translator, User, usage;
 
 usage = require("pidusage");
 
 User = require(__dirname + "/user.js");
 
 Project = require(__dirname + "/project.js");
-
-Tag = require(__dirname + "/tag.js");
 
 Token = require(__dirname + "/token.js");
 
@@ -24,24 +22,11 @@ this.Content = (function() {
     this.users_by_nick = {};
     this.tokens = {};
     this.projects = {};
-    this.tags = {};
-    this.sorted_tags = [];
     this.project_count = 0;
     this.user_count = 0;
     this.guest_count = 0;
     this.load();
-    this.hot_projects = [];
-    this.top_projects = [];
-    this.new_projects = [];
-    this.plugin_projects = [];
-    this.library_projects = [];
-    this.updatePublicProjects();
     console.info("Content loaded: " + this.user_count + " users and " + this.project_count + " projects");
-    this.top_interval = setInterval(((function(_this) {
-      return function() {
-        return _this.sortPublicProjects();
-      };
-    })(this)), 10001);
     this.log_interval = setInterval(((function(_this) {
       return function() {
         return _this.statusLog();
@@ -52,7 +37,6 @@ this.Content = (function() {
   }
 
   Content.prototype.close = function() {
-    clearInterval(this.top_interval);
     clearInterval(this.log_interval);
     if (this.cleaner != null) {
       return this.cleaner.stop();
@@ -114,7 +98,6 @@ this.Content = (function() {
       record = projects[l];
       this.loadProject(record);
     }
-    this.initLikes();
   };
 
   Content.prototype.loadUser = function(record) {
@@ -141,25 +124,9 @@ this.Content = (function() {
     project = new Project(this, record);
     if ((project.owner != null) && !project.deleted) {
       this.projects[project.id] = project;
-      this.loadTags(project);
       this.project_count++;
     }
     return project;
-  };
-
-  Content.prototype.loadTags = function(project) {
-    var j, len, ref, t, tag;
-    ref = project.tags;
-    for (j = 0, len = ref.length; j < len; j++) {
-      t = ref[j];
-      tag = this.tags[t];
-      if (tag == null) {
-        tag = new Tag(t);
-        this.tags[t] = tag;
-        this.sorted_tags.push(tag);
-      }
-      tag.add(project);
-    }
   };
 
   Content.prototype.loadToken = function(record) {
@@ -172,216 +139,15 @@ this.Content = (function() {
     return token;
   };
 
-  Content.prototype.initLikes = function() {
-    var f, j, key, len, ref, ref1, user;
-    ref = this.users;
-    for (key in ref) {
-      user = ref[key];
-      ref1 = user.likes;
-      for (j = 0, len = ref1.length; j < len; j++) {
-        f = ref1[j];
-        if (this.projects[f] != null) {
-          this.projects[f].likes++;
-        }
-      }
-    }
-  };
-
-  Content.prototype.updatePublicProjects = function() {
-    var key, project, ref;
-    this.hot_projects = [];
-    this.top_projects = [];
-    this.new_projects = [];
-    this.plugin_projects = [];
-    this.library_projects = [];
-    ref = this.projects;
-    for (key in ref) {
-      project = ref[key];
-      if (project["public"] && !project.unlisted && project.owner.flags["validated"] && !project.deleted && !project.owner.flags["censored"]) {
-        this.hot_projects.push(project);
-        this.top_projects.push(project);
-        this.new_projects.push(project);
-        if (project.type === "plugin") {
-          this.plugin_projects.push(project);
-        }
-        if (project.type === "library") {
-          this.library_projects.push(project);
-        }
-      }
-    }
-    return this.sortPublicProjects();
-  };
-
-  Content.prototype.sortPublicProjects = function() {
-    var fade, maxLikes, note, now, time;
-    time = Date.now();
-    this.top_projects.sort(function(a, b) {
-      return b.likes - a.likes;
-    });
-    this.new_projects.sort(function(a, b) {
-      return b.first_published - a.first_published;
-    });
-    this.sorted_tags.sort(function(a, b) {
-      return b.uses + b.num_users * 10 - a.uses - a.num_users * 10;
-    });
-    this.plugin_projects.sort(function(a, b) {
-      return b.likes - a.likes;
-    });
-    this.library_projects.sort(function(a, b) {
-      return b.likes - a.likes;
-    });
-    if (this.top_projects.length < 5) {
-      return;
-    }
-    now = Date.now();
-    maxLikes = Math.max(1, this.top_projects[4].likes);
-    fade = function(x) {
-      return 1 - Math.max(0, Math.min(1, x));
-    };
-    note = function(p) {
-      var rating, recent;
-      recent = fade((now - p.first_published) / 1000 / 3600 / 24 / 4);
-      rating = p.likes / maxLikes * (.15 + 2 * fade((now - p.first_published) / 1000 / 3600 / 24 / 180));
-      return recent + rating;
-    };
-    this.hot_projects.sort(function(a, b) {
-      return note(b) - note(a);
-    });
-    return console.info("Sorting public projects took: " + (Date.now() - time) + " ms");
-  };
-
-  Content.prototype.setProjectPublic = function(project, pub) {
-    var index;
-    project.set("public", pub);
-    if (pub && project.first_published === 0) {
-      project.set("first_published", Date.now());
-    }
-    if (pub && !project.unlisted) {
-      if (this.hot_projects.indexOf(project) < 0) {
-        this.hot_projects.push(project);
-      }
-      if (this.top_projects.indexOf(project) < 0) {
-        this.top_projects.push(project);
-      }
-      if (this.new_projects.indexOf(project) < 0) {
-        this.new_projects.push(project);
-      }
-      if (project.type === "plugin" && this.plugin_projects.indexOf(project) < 0) {
-        this.plugin_projects.push(project);
-      }
-      if (project.type === "library" && this.library_projects.indexOf(project) < 0) {
-        return this.library_projects.push(project);
-      }
-    } else {
-      index = this.hot_projects.indexOf(project);
-      if (index >= 0) {
-        this.hot_projects.splice(index, 1);
-      }
-      index = this.top_projects.indexOf(project);
-      if (index >= 0) {
-        this.top_projects.splice(index, 1);
-      }
-      index = this.new_projects.indexOf(project);
-      if (index >= 0) {
-        this.new_projects.splice(index, 1);
-      }
-      index = this.plugin_projects.indexOf(project);
-      if (index >= 0) {
-        this.plugin_projects.splice(index, 1);
-      }
-      index = this.library_projects.indexOf(project);
-      if (index >= 0) {
-        return this.library_projects.splice(index, 1);
-      }
-    }
-  };
-
   Content.prototype.setProjectType = function(project, type) {
-    var index;
-    project.set("type", type);
-    if (project["public"]) {
-      if (project.type === "plugin") {
-        if (this.plugin_projects.indexOf(project) < 0) {
-          this.plugin_projects.push(project);
-        }
-      } else {
-        index = this.plugin_projects.indexOf(project);
-        if (index >= 0) {
-          this.plugin_projects.splice(index, 1);
-        }
-      }
-      if (project.type === "library") {
-        if (this.library_projects.indexOf(project) < 0) {
-          return this.library_projects.push(project);
-        }
-      } else {
-        index = this.library_projects.indexOf(project);
-        if (index >= 0) {
-          return this.library_projects.splice(index, 1);
-        }
-      }
-    }
+    return project.setType(type);
   };
 
   Content.prototype.projectDeleted = function(project) {
-    var index;
-    this.project_count -= 1;
-    index = this.hot_projects.indexOf(project);
-    if (index >= 0) {
-      this.hot_projects.splice(index, 1);
-    }
-    index = this.top_projects.indexOf(project);
-    if (index >= 0) {
-      this.top_projects.splice(index, 1);
-    }
-    index = this.new_projects.indexOf(project);
-    if (index >= 0) {
-      this.new_projects.splice(index, 1);
-    }
-    index = this.plugin_projects.indexOf(project);
-    if (index >= 0) {
-      this.plugin_projects.splice(index, 1);
-    }
-    index = this.library_projects.indexOf(project);
-    if (index >= 0) {
-      return this.library_projects.splice(index, 1);
-    }
-  };
-
-  Content.prototype.addProjectTag = function(project, t) {
-    var tag;
-    tag = this.tags[t];
-    if (tag == null) {
-      tag = new Tag(t);
-      this.tags[t] = tag;
-      this.sorted_tags.push(tag);
-    }
-    return tag.add(project);
-  };
-
-  Content.prototype.removeProjectTag = function(project, t) {
-    var tag;
-    tag = this.tags[t];
-    if (tag != null) {
-      return tag.remove(project);
-    }
+    return this.project_count -= 1;
   };
 
   Content.prototype.setProjectTags = function(project, tags) {
-    var j, k, len, len1, ref, t;
-    ref = project.tags;
-    for (j = 0, len = ref.length; j < len; j++) {
-      t = ref[j];
-      if (tags.indexOf(t) < 0) {
-        this.removeProjectTag(project, t);
-      }
-    }
-    for (k = 0, len1 = tags.length; k < len1; k++) {
-      t = tags[k];
-      if (project.tags.indexOf(t) < 0) {
-        this.addProjectTag(project, t);
-      }
-    }
     return project.set("tags", tags);
   };
 
@@ -445,7 +211,7 @@ this.Content = (function() {
   };
 
   Content.prototype.createProject = function(owner, data, callback, empty) {
-    var content, count, d, project, record, slug;
+    var content, count, d, project, record, ref, slug;
     if (empty == null) {
       empty = false;
     }
@@ -462,17 +228,16 @@ this.Content = (function() {
       slug: data.slug,
       tags: [],
       likes: [],
-      "public": data["public"] || false,
+      "public": false,
       date_created: Date.now(),
       last_modified: Date.now(),
       deleted: false,
       owner: owner.id,
       orientation: data.orientation,
       aspect: data.aspect,
-      type: data.type,
+      type: (ref = data.type) === "app" || ref === "library" ? data.type : "app",
       language: data.language,
       graphics: data.graphics,
-      networking: data.networking,
       libs: data.libs,
       tabs: data.tabs,
       plugins: data.plugins,

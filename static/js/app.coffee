@@ -16,7 +16,6 @@ class App
     @app_state = new AppState @
 
     @appui = new AppUI @
-    @explore = new Explore @
     @client = new Client @
 
     @user_progress = new UserProgress @
@@ -40,8 +39,6 @@ class App
     @publish = new Publish @
     @user_settings = new UserSettings @
     @connected = false
-    @tutorial = new TutorialWindow @
-    @tutorials = new Tutorials @
     @client.start()
 
   setToken:(@token,@username)->
@@ -146,7 +143,6 @@ class App
       type: options.type
       graphics: options.graphics
       language: options.language
-      networking: options.networking
       libs: options.libs
     },(msg)=>
       switch msg.name
@@ -190,7 +186,6 @@ class App
             @appui.showNotification @translator.get "Project imported successfully"
             @appui.resetImportButton()
             @importing = false
-            @tab_manager.resetPlugins()
             @lib_manager.resetLibs()
 
       ),(progress)=>
@@ -232,25 +227,13 @@ class App
     @git_panel.projectOpened()
     @publish.loadProject(@project)
     @project.load()
-    if not @tutorial.shown
-      tuto = @getProjectTutorial(project.slug)
-      if tuto?
-        t = new Tutorial(tuto)
-        t.load ()=>
-          @tutorial.start(t)
 
   deleteProject:(project)->
-    if project.owner.nick == @nick
-      @client.sendRequest {
-        name: "delete_project"
-        project: project.id
-      },(msg)=>
-        @updateProjectList()
-    else
-      @client.sendRequest
-        name:"remove_project_user"
-        project: project.id
-        user: @nick
+    @client.sendRequest {
+      name: "delete_project"
+      project: project.id
+    },(msg)=>
+      @updateProjectList()
 
   projectTitleExists:(title)->
     return false if not @projects
@@ -316,17 +299,8 @@ class App
       @setToken(null)
       location.reload()
 
-  fetchPublicProjects:()->
-    @client.sendRequest {
-      name: "get_public_projects"
-      ranking: "hot"
-      tags: []
-    },(msg)=>
-
   serverMessage:(msg)->
     switch msg.name
-      when "project_user_list"
-        @updateProjectUserList msg
       when "project_list"
         @projects = msg.list
         @appui.updateProjects()
@@ -359,11 +333,6 @@ class App
       when "show_error"
         @appui.showNotification(@translator.get(msg.error))
 
-  updateProjectUserList:(msg)->
-    if @project? and msg.project == @project.id
-      @project.users = msg.users
-      @options.updateUserList()
-
   getUserSetting:(setting)->
     if @user? and @user.settings?
       @user.settings[setting]
@@ -380,36 +349,6 @@ class App
         setting: setting
         value: value
       },(msg)=>
-
-  setTutorialProgress:(tutorial_id,progress)->
-    tutorial_progress = @getUserSetting("tutorial_progress")
-    if not tutorial_progress?
-      tutorial_progress = {}
-
-    tutorial_progress[tutorial_id] = progress
-    @setUserSetting("tutorial_progress",tutorial_progress)
-
-  getTutorialProgress:(tutorial_id)->
-    tutorial_progress = @getUserSetting("tutorial_progress")
-    if not tutorial_progress?
-      return 0
-    else
-      return tutorial_progress[tutorial_id] or 0
-
-  setProjectTutorial:(project_slug,tutorial_id)->
-    project_tutorial = @getUserSetting("project_tutorial")
-    if not project_tutorial?
-      project_tutorial = {}
-
-    project_tutorial[project_slug] = tutorial_id
-    @setUserSetting("project_tutorial",project_tutorial)
-
-  getProjectTutorial:(slug)->
-    project_tutorial = @getUserSetting("project_tutorial")
-    if not project_tutorial?
-      return null
-    else
-      return project_tutorial[slug]
 
   setHomeState:()->
     if @translator.lang != "en"

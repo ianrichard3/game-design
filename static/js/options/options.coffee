@@ -32,13 +32,6 @@ class @Options
         document.getElementById("advanced-project-options").style.display = "block"
         advanced.childNodes[1].innerText = @app.translator.get "Hide advanced options"
 
-    @app.appui.setAction "add-project-user",()=>
-      @addProjectUser()
-
-    document.getElementById("add-project-user-nick").addEventListener "keyup",(event)=>
-      if event.keyCode == 13
-        @addProjectUser()
-
     list = document.querySelectorAll("#project-option-libs input")
     for input in list
       do(input)=>
@@ -109,14 +102,8 @@ class @Options
     @updateOptionalLibs()
 
     @updateSecretCodeLine()
-    @updateUserList()
     @updateLocalFolderUI()
     @app.project.addListener @
-
-    if window.ms_standalone or @app.user.flags.guest
-      document.querySelector("#projectoptions-users-content").style.display = "none"
-    else
-      document.querySelector("#projectoptions-users-content").style.display = "block"
     @updateGraphicsVersion()
 
   updateGraphicsVersion:()->
@@ -297,7 +284,6 @@ class @Options
       value: value
     },(msg)=>
 
-    @app.tab_manager.resetPlugins()
     @app.lib_manager.resetLibs()
 
   graphicsChanged:(value)->
@@ -389,44 +375,6 @@ class @Options
         option: "type"
         value: type
       },(msg)=>
-
-  addProjectUser:()->
-    nick = document.getElementById("add-project-user-nick").value
-    if nick.trim().length>0
-      @app.client.sendRequest {
-        name: "invite_to_project"
-        project: @app.project.id
-        user: nick
-      },(msg)=>
-        console.info msg
-      document.getElementById("add-project-user-nick").value = ""
-
-
-  updateUserList:()->
-    div = document.getElementById("project-user-list")
-    div.innerHTML = ""
-    for user in @app.project.users
-      do (user)=>
-        e = document.createElement "div"
-        e.classList.add "user"
-        name = document.createElement "div"
-        name.classList.add "username"
-        name.innerHTML = user.nick+" "+if user.accepted then "<i class='fa fa-check'></i>" else "<i class='fa fa-clock'></i>"
-        remove = document.createElement "div"
-        remove.classList.add "remove"
-        remove.innerHTML = "<i class='fa fa-times'></i> Remove"
-        remove.addEventListener "click",(event)=>
-          @app.client.sendRequest
-            name:"remove_project_user"
-            project: @app.project.id
-            user: user.nick
-
-        e.appendChild remove
-        e.appendChild name
-
-        div.appendChild e
-    return
-
 
 DEFAULT_CODE =
   python: """

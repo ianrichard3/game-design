@@ -82,10 +82,6 @@ html(lang=language)
       script.
         window.ms_default_project_language = "!{default_project_language}" ;
 
-    if tutorials_root_url
-      script.
-        window.ms_tutorials_root_url = "!{tutorials_root_url}" ;
-
     each js in javascript_files
       script(src=js)
 
@@ -114,10 +110,8 @@ html(lang=language)
       img.logo#logo(src="/img/microstudiologo.svg" alt="microStudio" title="microStudio")
 
       div.titlemenu
-        li#menu-explore.selected(title=translator.get("Explore")) <i class="fa fa-search"></i><br /><span>#{translator.get("Explore")}</span>
         li#menu-projects(title=translator.get("Create")) <i class="fa fa-code"></i><br /><span>#{translator.get("Create")}</span>
         //- li#menu-play(title=translator.get("Play")) <i class="fa fa-gamepad"></i><br /><span>#{translator.get("Play")}</span>
-        li#menu-tutorials(title=translator.get("Tutorials")) <i class="fa fa-lightbulb"></i><br /><span>#{translator.get("Tutorials")}</span>
         li#menu-help(title=translator.get("Documentation")) <i class="fa fa-book-open"></i><br /><span>#{translator.get("Documentation")}</span>
         li#menu-about(title=translator.get("About")) <i class="fa fa-info-circle"></i><br /><span>#{translator.get("About")}</span>
 
@@ -216,28 +210,11 @@ html(lang=language)
 
         div.part
           div.center
-            i.fa.fa-users
-          div.center
-            h2 #{translator.get("Bring your friends")}
-            p #{translator.get("You can invite others to your project and work in teams.")}
-            p #{translator.get("microStudio automagically synchronizes all your project files in real time.")}
-
-        div.part
-          div.center
             h2 #{translator.get("Get your gear ready")}
             p #{translator.get("Control your game using the gamepad, touchscreen, keyboard or mouse inputs.")}
-            p #{translator.get("Export your project in a single click to HTML5, Windows, Linux, macOS. More export options are coming!")}
+            p #{translator.get("Export your project to a self-contained HTML5 app.")}
           div.center
             img.screen(src="/img/gamepad.svg" alt="Gamepad" style="box-shadow: none; width: 75%")
-
-        div.part
-          div.center
-            img.screen(src="/img/community.jpg" alt="Community" style="box-shadow: none;")
-          div.center
-            h2 #{translator.get("Join the community")}
-            p #{translator.get("Browse public games, demos, resources. Pick up what you need for your own project.")}
-            p #{translator.get("Contribute your best creations and help others.")}
-
 
         div.part.last
           img(src="/img/microstudiologo.svg" alt="microStudio" style="width: 250px")
@@ -245,10 +222,6 @@ html(lang=language)
         div.part
           h2 #{translator.get("So what now?")}
           br
-          div.button#home-action-explore
-            i.fa.fa-search
-            br
-            span #{translator.get("Explore public projects")}
           div.button#home-action-create
             i.fa.fa-pencil-alt
             br
@@ -313,43 +286,11 @@ html(lang=language)
             i.fa.fa-circle
             a.notranslate(id="switch-to-es" href="/es/" translate="no") microStudio en español
 
-      div.exploreview#explore-section
-        div#explore-bar
-          div#explore-back-button
-            i(class="fa fa-arrow-left")
-            span #{translator.get("Back")}
-
-          div#explore-tools
-            div#explore-sort-button.hot
-              i.fas.fa-arrows-alt-v
-              span #{translator.get("Hot")}
-
-            div#explore-type-button.all
-              i.fa
-              span #{translator.get("All")}
-
-            div#explore-search
-              input#explore-search-input(name="search")
-              i.fa.fa-search
-
-        div#explore-tags-bar.collapsed
-          div#explore-tags
-          i.fa.fa-caret-right#explore-tags-collapse
-
-        div#explore-contents
-          div#explore-box-list
-
-        div#explore-project-details
-          include projectdetails.pug
-
       div.help-section#help-section
         include help.pug
 
       div.about-section#about-section
         include about.pug
-
-      div.tutorials-section#tutorials-section
-        include tutorials.pug
 
       div.usersettings-section#usersettings-section
         include user.pug
@@ -373,10 +314,6 @@ html(lang=language)
             i#project-fullscreen.fas.fa-expand(title=translator.get("Toggle Full Screen"))
             span#project-name Project name
             i#save-status(class="fa fa-ellipsis-h")
-            div#active-project-users
-              div.active-user
-                i(class="fa fa-user")
-                span username
 
           div.sidemenu#sidemenu
             ul
@@ -396,8 +333,6 @@ html(lang=language)
           div.section-container#section-container
             div.section#code-section
               include code.pug
-
-            div.section#explore-section
 
             div.section#projects-section
 
@@ -449,7 +384,6 @@ html(lang=language)
             i.fa.fa-user-plus
             br
             h3 #{translator.get("Create my account")}
-            p #{translator.get("Save your projects, work in teams, publish, vote, comment...")}
 
           div.button#guest-action-login
             i.fa.fa-sign-in-alt
@@ -535,10 +469,6 @@ html(lang=language)
               select#createprojectoption-type
                 option(value="app") #{translator.get("App (game, demo...)")}
                 option(value="library") #{translator.get("Library")}
-                option(value="plugin") #{translator.get("Plug-in")}
-                option(value="tutorial") #{translator.get("Tutorial")}
-                option(value="example") #{translator.get("Example")}
-                option(value="template") #{translator.get("Template")}
 
             div.createprojectoption#create-project-option-language
               h3 #{translator.get("Language support")}
@@ -575,20 +505,6 @@ html(lang=language)
         i(class="fa fa-comment")
         span Example Bubble Text
 
-    div#tutorial-overlay
-
-    div.floating-window#tutorial-window
-      div.titlebar
-        i.icon.fa.fa-lightbulb
-        div.title #{translator.get("Tutorial")}
-        i.minify.fa.fa-compress
-      div.content.md
-      div.navigation
-        i.previous.fa.fa-arrow-left
-        span.step 1/15
-        i.next.fa.fa-arrow-right
-        i.resize.fa.fa-grip-horizontal
-
     div.floating-window#run-window
       div.titlebar.runbar
         div.title #{translator.get("Run")}
@@ -606,9 +522,5 @@ html(lang=language)
       div.content
       div.navigation
         i.resize.fa.fa-grip-horizontal
-
-    canvas#highlighter
-
-    i.fa.fa-arrow-right#highlighter-arrow
 
     div#user-progress-notifications

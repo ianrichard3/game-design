@@ -82,10 +82,6 @@ div.projectoptions#projectoptions
             select#projectoption-type
               option(value="app") #{translator.get("App (game, demo...)")}
               option(value="library") #{translator.get("Library")}
-              option(value="plugin") #{translator.get("Plug-in")}
-              option(value="tutorial") #{translator.get("Tutorial")}
-              option(value="example") #{translator.get("Example")}
-              option(value="template") #{translator.get("Template")}
 
             div.tip.library
               p #{translator.get("Library")}
@@ -119,14 +115,3 @@ div.projectoptions#projectoptions
               label(for="project-option-lib-"+key) #{translator.get(val.title)}
               select.marginleft10(id="project-option-lib-"+key+"-version")
               br
-
-    div#projectoptions-users
-      div#projectoptions-users-content
-        div.projectoption
-          h3 #{translator.get("Users")}
-          p #{translator.get("Here is where your grant other users access to edit your project. Users added here are granted full control on your project, except for adding or deleting other users.")}
-          div.userlist#project-user-list
-
-          div.adduser
-            input.username#add-project-user-nick(placeholder=translator.get("nickname"))
-            div.addbutton#add-project-user <i class="fa fa-user-plus"></i> #{translator.get("Add User")}

@@ -20,7 +20,6 @@ class @User
       @patches = []
       @likes = data.likes or []
       @projects = {}
-      @project_links = []
       @listeners = []
       @notifications = []
       @description = data.description or ""
@@ -97,19 +96,6 @@ class @User
     for key,project of @projects
       size += project.getSize()
     size
-
-  addProjectLink:(link)->
-    @project_links.push link
-
-  listProjectLinks:()->
-    @project_links
-
-  removeLink:(projectid)->
-    for link,i in @project_links
-      if link.project.id == projectid
-        @project_links.splice i,1
-        return
-    return
 
   findProject:(id)->
     @projects[id]

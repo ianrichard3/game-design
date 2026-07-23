@@ -38,8 +38,8 @@ class @WebApp
       if i==@languages.length-1
         home_exp += "|"
 
-    @reserved = ["explore","documentation","projects","about","login","user","tutorials\\/examples","tutorials\\/community"]
-    @reserved_exact = ["tutorials"]
+    @reserved = ["documentation","projects","about","login","user"]
+    @reserved_exact = []
 
     for r in @reserved
       home_exp += "\\/#{r}|\\/#{r}\\/.*|"
@@ -47,9 +47,7 @@ class @WebApp
     for r in @reserved_exact
       home_exp += "\\/#{r}|\\/#{r}\\/|"
 
-    home_exp += "\\/tutorial\\/[^\\/\\|\\?\\&\\.]+\\/[^\\/\\|\\?\\&\\.]+(\\/([^\\/\\|\\?\\&\\.]+\\/?)?)|"
-
-    home_exp += "(\\/i\\/.*))$"
+    home_exp += ")$"
 
 
     console.info "home_exp = #{home_exp}"
@@ -80,44 +78,7 @@ class @WebApp
         res.setHeader( "Cross-Origin-Embedder-Policy", "require-corp" )
         res.setHeader( "Cross-Origin-Opener-Policy", "same-origin" )
 
-      if s[1] == "i"
-        user = s[2]
-        project = s[3]
-        user = @server.content.findUserByNick(user)
-        if not user?
-          @return404(req,res)
-          return null
-
-        project = user.findProjectBySlug project
-        if not project? or not project.public
-          @return404(req,res)
-          return null
-
-        translator = @server.content.translator.getTranslator(lang)
-        page = @home_funk
-          name: project.title
-          javascript_files: @concatenator.getHomeJSFiles()
-          css_files: @concatenator.getHomeCSSFiles()
-          translator: translator
-          language: lang
-          standalone: @server.config.standalone == true
-          languages: @languages
-          graphics_options: @concatenator.alt_players
-          optional_libs: @concatenator.optional_libs
-          language_engines: @concatenator.language_engines
-          translation: if @server.content.translator.languages[lang]? then @server.content.translator.languages[lang].export() else "{}"
-          title: translator.get("%PROJECT% - by %USER%").replace("%PROJECT%",project.title).replace("%USER%",user.nick)
-          description: project.description
-          long_description: project.description
-          poster: if project.files? and project.files["sprites/poster.png"]? then "https://microstudio.io/#{user.nick}/#{project.slug}/sprites/poster.png" else "https://microstudio.io/#{user.nick}/#{project.slug}/sprites/icon.png"
-          project_moderation: @server.config.project_moderation == true
-          dev_domain: dev_domain
-          run_domain: run_domain
-          default_project_language: @server.config.default_project_language
-          tutorials_root_url: @server.config.tutorials_root_url
-
-        return res.send page
-      else if not @home_page[lang]? or not @server.use_cache
+      if not @home_page[lang]? or not @server.use_cache
         #console.info "generating home page #{lang}"
         translator = @server.content.translator.getTranslator(lang)
         @home_page[lang] = @home_funk
@@ -140,7 +101,6 @@ class @WebApp
           dev_domain: dev_domain
           run_domain: run_domain
           default_project_language: @server.config.default_project_language
-          tutorials_root_url: @server.config.tutorials_root_url
 
       res.send @home_page[lang]
 
@@ -335,7 +295,6 @@ class @WebApp
                       orientation: project.orientation
                       aspect: project.aspect
                       graphics: project.graphics
-                      networking: project.networking or false
                       libs: JSON.stringify(project.libs)
                       description: project.description
                       poster: poster

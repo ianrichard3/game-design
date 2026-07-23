@@ -5,7 +5,7 @@ AppUI = (function() {
     var advanced, fn, fn1, j, k, len, len1, ref, ref1, s;
     this.app = app1;
     this.sections = ["code", "sprites", "maps", "assets", "sounds", "music", "doc", "git", "options", "publish", "tabs"];
-    this.menuoptions = ["home", "explore", "projects", "help", "tutorials", "about", "usersettings"];
+    this.menuoptions = ["home", "projects", "help", "about", "usersettings"];
     ref = this.sections;
     fn = (function(_this) {
       return function(s) {
@@ -47,9 +47,7 @@ AppUI = (function() {
         e = document.getElementById("menu-" + s);
         if (e != null) {
           return e.addEventListener("click", function(event) {
-            if (window.ms_standalone && s === "explore") {
-              return window.open("https://microstudio.dev/explore/", "_blank");
-            } else if (window.ms_standalone && s === "home") {
+            if (window.ms_standalone && s === "home") {
               return window.open("https://microstudio.dev", "_blank");
             } else {
               return _this.setMainSection(s, true);
@@ -72,8 +70,6 @@ AppUI = (function() {
       };
     })(this));
     if (window.ms_standalone) {
-      document.getElementById("projectoptions-users-content").style.display = "none";
-      document.getElementById("publish-box-online").style.display = "none";
       document.getElementById("usersetting-block-nickname").style.display = "none";
       document.getElementById("usersetting-block-email").style.display = "none";
       document.getElementById("usersetting-block-newsletter").style.display = "none";
@@ -129,11 +125,6 @@ AppUI = (function() {
         return input.click();
       };
     })(this));
-    this.setAction("home-action-explore", (function(_this) {
-      return function() {
-        return _this.setMainSection("explore");
-      };
-    })(this));
     this.setAction("home-action-create", (function(_this) {
       return function() {
         return _this.setMainSection("projects");
@@ -183,9 +174,6 @@ AppUI = (function() {
     this.runtime_splitbar = new SplitBar("runtime-container", "vertical");
     this.runtime_splitbar.auto = 1.5;
     this.runtime_splitbar.initPosition(67);
-    this.server_splitbar = new SplitBar("runtime-terminal", "horizontal");
-    this.server_splitbar.initPosition(50);
-    this.server_splitbar.closed1 = true;
     this.debug_splitbar = new SplitBar("terminal-debug-container", "horizontal");
     this.debug_splitbar.closed2 = true;
     this.debug_splitbar.splitbar_size = 12;
@@ -408,7 +396,7 @@ AppUI = (function() {
   };
 
   AppUI.prototype.setSection = function(section, useraction) {
-    var fn, item, j, k, len, len1, list, menuitem, ref, s;
+    var fn, j, len, menuitem, ref, s;
     if (this.makeProjectSideBarVisible != null) {
       this.makeProjectSideBarVisible();
     }
@@ -445,20 +433,11 @@ AppUI = (function() {
     if (menuitem != null) {
       menuitem.classList.add("selected");
     }
-    list = document.querySelectorAll(".menuitem-plugin");
-    for (k = 0, len1 = list.length; k < len1; k++) {
-      item = list[k];
-      if (item.id !== ("menuitem-" + section)) {
-        item.classList.remove("selected");
-      }
-    }
-    this.app.tab_manager.setTabView(section);
     if (section === "sprites") {
       this.app.sprite_editor.spriteview.windowResized();
     }
     if (section === "code") {
       this.code_splitbar.update();
-      this.server_splitbar.update();
       this.debug_splitbar.update();
       this.runtime_splitbar.update();
       this.app.runwindow.windowResized();
@@ -474,7 +453,6 @@ AppUI = (function() {
     if (section === "doc") {
       this.doc_splitbar.update();
       this.app.doc_editor.editor.resize();
-      this.app.doc_editor.checkTutorial();
     }
     if (section === "sounds") {
       this.app.sound_editor.update();
@@ -506,7 +484,7 @@ AppUI = (function() {
   };
 
   AppUI.prototype.setMainSection = function(section, useraction) {
-    var fn, j, len, name, p, ref, s;
+    var fn, j, len, name, ref, s;
     if (useraction == null) {
       useraction = false;
     }
@@ -519,19 +497,12 @@ AppUI = (function() {
         this.app.app_state.pushState("home", this.app.translator.lang === "fr" ? "/fr" : "/");
       } else if (section === "projects" && (this.project != null) && (this.current_section != null)) {
         this.app.app_state.pushState("project." + this.project.slug + "." + this.current_section, "/projects/" + this.project.slug + "/" + this.current_section + "/");
-      } else if (section === "explore" && this.app.explore.project) {
-        p = this.app.explore.project;
-        this.app.app_state.pushState("project_details", "/i/" + p.owner + "/" + p.slug + "/", {
-          project: p
-        });
       } else {
         name = {
           "help": "documentation"
         }[section] || section;
         if (name === "documentation") {
           this.app.documentation.pushState();
-        } else if (name === "tutorials") {
-          this.app.tutorials.tutorials_page.pushState();
         } else {
           this.app.app_state.pushState(name, "/" + name + "/");
         }
@@ -566,24 +537,15 @@ AppUI = (function() {
     }
     if (section === "projects") {
       this.code_splitbar.update();
-      this.server_splitbar.update();
       this.debug_splitbar.update();
       this.runtime_splitbar.update();
       this.app.runwindow.windowResized();
-    }
-    if (section === "explore") {
-      this.app.explore.update();
-    } else {
-      this.app.explore.closed();
     }
     if (section === "help") {
       this.app.documentation.updateViewPos();
     }
     if (section === "about") {
       this.app.about.setSection("about");
-    }
-    if (section === "tutorials") {
-      this.app.tutorials.load();
     }
     this.app.runwindow.hideAll();
   };
@@ -878,7 +840,6 @@ AppUI = (function() {
     if (this.app.user.info.size > this.app.user.info.max_storage) {
       text = this.app.translator.get("Your account is out of space!");
       text += " " + this.app.translator.get("You are using %USED% of the %ALLOWED% you are allowed.").replace("%USED%", this.displayByteSize(this.app.user.info.size)).replace("%ALLOWED%", this.displayByteSize(this.app.user.info.max_storage));
-      text += " <a href='https://microstudio.dev/community/tips/your-account-is-out-of-space/109/' target='_blank'>" + (this.app.translator.get("More info...")) + "</a>";
       return this.addWarningMessage(text, void 0, "out_of_storage", false);
     }
   };
@@ -1004,7 +965,7 @@ AppUI = (function() {
   };
 
   AppUI.prototype.updateProjects = function() {
-    var c, count, div, e, element, h2, j, k, len, len1, list, p, pending, ref;
+    var c, count, element, h2, j, len, list, p, ref;
     list = this.get("project-list");
     list.innerHTML = "";
     if (this.app.projects == null) {
@@ -1014,36 +975,18 @@ AppUI = (function() {
     this.app.projects.sort(function(a, b) {
       return b.last_modified - a.last_modified;
     });
-    pending = [];
     count = 0;
     ref = this.app.projects;
     for (j = 0, len = ref.length; j < len; j++) {
       p = ref[j];
-      if (p.owner.nick === this.app.nick || p.accepted) {
-        element = this.createProjectBox(p);
-        list.appendChild(element);
-        count++;
-      } else {
-        pending.push(p);
-      }
+      element = this.createProjectBox(p);
+      list.appendChild(element);
+      count++;
     }
     if (count === 0) {
       h2 = document.createElement("h2");
       h2.innerHTML = this.app.translator.get("Your projects will be displayed here.") + "<br />" + this.app.translator.get("Time to create your first project!");
       list.appendChild(h2);
-    }
-    if (pending.length > 0) {
-      div = document.createElement("div");
-      div.classList.add("project-invites-list");
-      div.innerHTML = "<h2><i class='fa fa-users'></i> Pending invitations</h2>";
-      for (k = 0, len1 = pending.length; k < len1; k++) {
-        p = pending[k];
-        e = document.createElement("div");
-        e.classList.add("invite");
-        e.innerHTML = "<div class=\"buttons\">\n   <div class=\"accept\" title=\"Accept\" onclick=\"app.appui.acceptInvite(" + p.id + ")\"><i class=\"fa fa-check\"></i></div><div class=\"reject\" title=\"Reject\" onclick=\"app.appui.rejectInvite(" + p.id + ")\"><i class=\"fa fa-times\"></i></div>\n</div>\n<img src=\"/" + p.owner.nick + "/" + p.slug + "/" + p.code + "/icon.png\"/> " + p.title + " by " + p.owner.nick;
-        div.appendChild(e);
-      }
-      list.insertBefore(div, list.firstChild);
     }
     if (this.logged_callback != null) {
       c = this.logged_callback;
@@ -1054,38 +997,9 @@ AppUI = (function() {
     }
   };
 
-  AppUI.prototype.acceptInvite = function(projectid) {
-    var j, len, p, ref;
-    ref = this.app.projects;
-    for (j = 0, len = ref.length; j < len; j++) {
-      p = ref[j];
-      if (p.id === projectid && p.owner.nick !== this.app.nick && !p.accepted) {
-        this.app.client.sendRequest({
-          name: "accept_invite",
-          project: projectid
-        });
-      }
-    }
-  };
-
-  AppUI.prototype.rejectInvite = function(projectid) {
-    var j, len, p, ref;
-    ref = this.app.projects;
-    for (j = 0, len = ref.length; j < len; j++) {
-      p = ref[j];
-      if (p.id === projectid && p.owner.nick !== this.app.nick) {
-        this.app.client.sendRequest({
-          name: "remove_project_user",
-          user: this.app.nick,
-          project: projectid
-        });
-      }
-    }
-  };
-
-  AppUI.prototype.setProject = function(project1, useraction) {
+  AppUI.prototype.setProject = function(project, useraction) {
     var j, len, ref, t, tab;
-    this.project = project1;
+    this.project = project;
     if (useraction == null) {
       useraction = true;
     }
@@ -1111,9 +1025,7 @@ AppUI = (function() {
     this.debug_splitbar.closed2 = true;
     this.debug_splitbar.update();
     this.runtime_splitbar.initPosition(50);
-    this.server_splitbar.initPosition(50);
     this.app.runwindow.terminal.start();
-    this.updateActiveUsers();
     return this.doc_splitbar.initPosition(50);
   };
 
@@ -1141,39 +1053,6 @@ AppUI = (function() {
       }
     } else if (change === "title" || change === "public") {
       return this.updateProjectTitle();
-    } else if (change === "locks") {
-      return this.updateActiveUsers();
-    }
-  };
-
-  AppUI.prototype.updateActiveUsers = function() {
-    var div, e, element, i, j, key, list, name, names, ref, span;
-    element = document.querySelector(".projectheader #active-project-users");
-    list = element.childNodes;
-    names = {};
-    for (i = j = ref = list.length - 1; j >= 0; i = j += -1) {
-      e = list[i];
-      name = e.id.split("-")[2];
-      if (this.project.friends[name] == null) {
-        element.removeChild(e);
-      } else {
-        names[name] = true;
-      }
-    }
-    for (key in this.project.friends) {
-      if (!names[key]) {
-        div = document.createElement("div");
-        div.style = "background:" + (this.createFriendColor(key));
-        div.id = "active-user-" + key;
-        i = document.createElement("i");
-        i.classList.add("fa");
-        i.classList.add("fa-user");
-        div.appendChild(i);
-        span = document.createElement("span");
-        span.innerText = key;
-        div.appendChild(span);
-        element.appendChild(div);
-      }
     }
   };
 
@@ -1490,39 +1369,6 @@ AppUI = (function() {
         }
       };
     })(this)), 500);
-  };
-
-  AppUI.prototype.createProjectLikesButton = function(element, project) {
-    var e, likes;
-    e = element.querySelector(".likes-button");
-    if (e) {
-      e.parentNode.removeChild(e);
-    }
-    likes = document.createElement("div");
-    likes.classList.add("likes-button");
-    likes.innerHTML = "<i class='fa fa-thumbs-up'></i> " + project.likes;
-    if (project.liked) {
-      likes.classList.add("liked");
-    }
-    element.appendChild(likes);
-    return likes.addEventListener("click", (function(_this) {
-      return function() {
-        event.stopImmediatePropagation();
-        if (!_this.app.user.flags.validated) {
-          return alert(_this.app.translator.get("Validate your e-mail address to enable votes."));
-        }
-        return _this.app.client.sendRequest({
-          name: "toggle_like",
-          project: project.id
-        }, function(msg) {
-          if (msg.name === "project_likes") {
-            project.likes = msg.likes;
-            project.liked = msg.liked;
-            return _this.createProjectLikesButton(element, project);
-          }
-        });
-      };
-    })(this));
   };
 
   return AppUI;

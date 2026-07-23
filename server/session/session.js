@@ -111,11 +111,6 @@ this.Session = (function() {
         return _this.changeNick(msg);
       };
     })(this));
-    this.register("change_password", (function(_this) {
-      return function(msg) {
-        return _this.changePassword(msg);
-      };
-    })(this));
     this.register("change_newsletter", (function(_this) {
       return function(msg) {
         return _this.changeNewsletter(msg);
@@ -154,11 +149,6 @@ this.Session = (function() {
     this.register("set_project_property", (function(_this) {
       return function(msg) {
         return _this.setProjectProperty(msg);
-      };
-    })(this));
-    this.register("set_project_public", (function(_this) {
-      return function(msg) {
-        return _this.setProjectPublic(msg);
       };
     })(this));
     this.register("set_project_tags", (function(_this) {
@@ -276,54 +266,9 @@ this.Session = (function() {
         return _this.gitLog(msg);
       };
     })(this));
-    this.register("invite_to_project", (function(_this) {
-      return function(msg) {
-        return _this.inviteToProject(msg);
-      };
-    })(this));
-    this.register("accept_invite", (function(_this) {
-      return function(msg) {
-        return _this.acceptInvite(msg);
-      };
-    })(this));
-    this.register("remove_project_user", (function(_this) {
-      return function(msg) {
-        return _this.removeProjectUser(msg);
-      };
-    })(this));
-    this.register("get_public_projects", (function(_this) {
-      return function(msg) {
-        return _this.getPublicProjects(msg);
-      };
-    })(this));
-    this.register("get_public_plugins", (function(_this) {
-      return function(msg) {
-        return _this.getPublicPlugins(msg);
-      };
-    })(this));
-    this.register("get_public_libraries", (function(_this) {
-      return function(msg) {
-        return _this.getPublicLibraries(msg);
-      };
-    })(this));
-    this.register("get_public_project", (function(_this) {
-      return function(msg) {
-        return _this.getPublicProject(msg);
-      };
-    })(this));
     this.register("clone_project", (function(_this) {
       return function(msg) {
         return _this.cloneProject(msg);
-      };
-    })(this));
-    this.register("clone_public_project", (function(_this) {
-      return function(msg) {
-        return _this.clonePublicProject(msg);
-      };
-    })(this));
-    this.register("toggle_like", (function(_this) {
-      return function(msg) {
-        return _this.toggleLike(msg);
       };
     })(this));
     this.register("get_language", (function(_this) {
@@ -366,21 +311,6 @@ this.Session = (function() {
         return _this.editProjectComment(msg);
       };
     })(this));
-    this.register("build_project", (function(_this) {
-      return function(msg) {
-        return _this.buildProject(msg);
-      };
-    })(this));
-    this.register("get_build_status", (function(_this) {
-      return function(msg) {
-        return _this.getBuildStatus(msg);
-      };
-    })(this));
-    this.register("start_builder", (function(_this) {
-      return function(msg) {
-        return _this.startBuilder(msg);
-      };
-    })(this));
     this.register("backup_complete", (function(_this) {
       return function(msg) {
         return _this.backupComplete(msg);
@@ -389,21 +319,6 @@ this.Session = (function() {
     this.register("upload_request", (function(_this) {
       return function(msg) {
         return _this.uploadRequest(msg);
-      };
-    })(this));
-    this.register("tutorial_completed", (function(_this) {
-      return function(msg) {
-        return _this.tutorialCompleted(msg);
-      };
-    })(this));
-    this.register("set_project_approved", (function(_this) {
-      return function(msg) {
-        return _this.setProjectApproved(msg);
-      };
-    })(this));
-    this.register("set_user_approved", (function(_this) {
-      return function(msg) {
-        return _this.setUserApproved(msg);
       };
     })(this));
     ref = this.server.plugins;
@@ -421,9 +336,7 @@ this.Session = (function() {
       "news": true,
       "about": true,
       "discord": true,
-      "article": true,
-      "forum": true,
-      "community": true
+      "article": true
     };
   }
 
@@ -1131,82 +1044,6 @@ this.Session = (function() {
     })(this));
   };
 
-  Session.prototype.clonePublicProject = function(data) {
-    var project;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (!this.server.rate_limiter.accept("create_project_user", this.user.id)) {
-      return;
-    }
-    if (data.project == null) {
-      return this.sendError("");
-    }
-    project = this.server.content.projects[data.project];
-    if ((project != null) && project["public"]) {
-      return this.content.createProject(this.user, {
-        title: project.title,
-        slug: project.slug,
-        "public": false
-      }, ((function(_this) {
-        return function(clone) {
-          var files, folders, funk, man;
-          clone.setType(project.type);
-          clone.setOrientation(project.orientation);
-          clone.setAspect(project.aspect);
-          clone.set("language", project.language);
-          clone.setGraphics(project.graphics);
-          clone.set("networking", project.networking);
-          clone.set("libs", project.libs);
-          clone.set("tabs", project.tabs);
-          clone.set("plugins", project.plugins);
-          clone.set("libraries", project.libraries);
-          clone.set("files", JSON.parse(JSON.stringify(project.files)));
-          man = _this.getProjectManager(project);
-          folders = ["ms", "sprites", "maps", "sounds", "sounds_th", "music", "music_th", "assets", "assets_th", "doc"];
-          files = [];
-          funk = function() {
-            var dest, f, folder, src;
-            if (folders.length > 0) {
-              folder = folders.splice(0, 1)[0];
-              return man.listFiles(folder, function(list) {
-                var f, j, len1;
-                for (j = 0, len1 = list.length; j < len1; j++) {
-                  f = list[j];
-                  files.push({
-                    file: f.file,
-                    folder: folder
-                  });
-                }
-                return funk();
-              });
-            } else if (files.length > 0) {
-              f = files.splice(0, 1)[0];
-              src = project.owner.id + "/" + project.id + "/" + f.folder + "/" + f.file;
-              dest = clone.owner.id + "/" + clone.id + "/" + f.folder + "/" + f.file;
-              return project.getStorage().read(src, "binary", function(content) {
-                if (content != null) {
-                  return clone.getStorage().write(dest, content, function() {
-                    return funk();
-                  });
-                } else {
-                  return funk();
-                }
-              });
-            } else {
-              return _this.send({
-                name: "project_created",
-                id: clone.id,
-                request_id: data.request_id
-              });
-            }
-          };
-          return funk();
-        };
-      })(this)), true);
-    }
-  };
-
   Session.prototype.cloneProject = function(data) {
     var manager, project;
     if (this.user == null) {
@@ -1234,7 +1071,6 @@ this.Session = (function() {
             clone.setAspect(project.aspect);
             clone.set("language", project.language);
             clone.setGraphics(project.graphics);
-            clone.set("networking", project.networking);
             clone.set("libs", project.libs);
             clone.set("tabs", project.tabs);
             clone.set("plugins", project.plugins);
@@ -1293,92 +1129,10 @@ this.Session = (function() {
     return project.manager;
   };
 
-  Session.prototype.setProjectPublic = function(data) {
-    var project;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (data["public"] && !this.user.flags["validated"]) {
-      return;
-    }
-    if (data.project == null) {
-      if (this.user.flags.admin && data.id) {
-        project = this.content.projects[data.id];
-        if (project != null) {
-          this.content.setProjectPublic(project, data["public"]);
-          return this.send({
-            name: "set_project_public",
-            id: project.id,
-            "public": project["public"],
-            request_id: data.request_id
-          });
-        }
-      }
-    } else {
-      project = this.user.findProject(data.project);
-      if (project != null) {
-        this.content.setProjectPublic(project, data["public"]);
-        return this.send({
-          name: "set_project_public",
-          id: project.id,
-          "public": project["public"],
-          request_id: data.request_id
-        });
-      }
-    }
-  };
-
-  Session.prototype.setProjectApproved = function(data) {
-    var project;
-    if (this.user == null) {
-      return;
-    }
-    if (data.project == null) {
-      return;
-    }
-    if (this.user.flags.admin || this.user.flags.moderator) {
-      project = this.content.projects[data.project];
-      if (project != null) {
-        project.setFlag("approved", data.approved);
-        return this.send({
-          name: "set_project_approved",
-          id: project.id,
-          approved: data.approved,
-          request_id: data.request_id
-        });
-      }
-    }
-  };
-
-  Session.prototype.setUserApproved = function(data) {
-    var user;
-    if (this.user == null) {
-      return;
-    }
-    if (data.user == null) {
-      return;
-    }
-    if (this.user.flags.admin || this.user.flags.moderator) {
-      user = this.content.users_by_nick[data.user];
-      if ((user != null) && !user.flags.admin && !user.flags.moderator) {
-        user.setFlag("approved", data.approved);
-        return this.send({
-          name: "set_project_approved",
-          user: data.user,
-          approved: data.approved,
-          request_id: data.request_id
-        });
-      }
-    }
-  };
-
   Session.prototype.setProjectTags = function(data) {
     var project;
     if (this.user == null) {
       return this.sendError("not connected");
-    }
-    if (data["public"] && !this.user.flags["validated"]) {
-      return;
     }
     if (data.project == null) {
       return;
@@ -1471,9 +1225,6 @@ this.Session = (function() {
             project.set("libraries", data.value);
           }
           break;
-        case "networking":
-          project.set("networking", (data.value != null) && data.value !== false);
-          break;
         case "type":
           if (typeof data.value === "string") {
             this.content.setProjectType(project, data.value);
@@ -1541,7 +1292,7 @@ this.Session = (function() {
   };
 
   Session.prototype.getProjectList = function(data) {
-    var j, k, len1, len2, link, list, p, source;
+    var j, len1, list, p, source;
     if (this.user == null) {
       return this.sendError("not connected");
     }
@@ -1574,54 +1325,12 @@ this.Session = (function() {
           tabs: p.tabs,
           plugins: p.plugins,
           libraries: p.libraries,
-          networking: p.networking,
           properties: p.properties,
           date_created: p.date_created,
           last_modified: p.last_modified,
           "public": p["public"],
           unlisted: p.unlisted,
           size: p.getSize(),
-          users: p.listUsers(),
-          local_folder: p.local_folder
-        });
-      }
-    }
-    source = this.user.listProjectLinks();
-    for (k = 0, len2 = source.length; k < len2; k++) {
-      link = source[k];
-      if (!link.project.deleted) {
-        p = link.project;
-        list.push({
-          id: p.id,
-          owner: {
-            id: p.owner.id,
-            nick: p.owner.nick
-          },
-          accepted: link.accepted,
-          title: p.title,
-          slug: p.slug,
-          code: p.code,
-          description: p.description,
-          tags: p.tags,
-          flags: p.flags,
-          poster: (p.files != null) && (p.files["sprites/poster.png"] != null),
-          platforms: p.platforms,
-          controls: p.controls,
-          type: p.type,
-          orientation: p.orientation,
-          aspect: p.aspect,
-          graphics: p.graphics,
-          language: p.language,
-          libs: p.libs,
-          tabs: p.tabs,
-          plugins: p.plugins,
-          libraries: p.libraries,
-          networking: p.networking,
-          date_created: p.date_created,
-          last_modified: p.last_modified,
-          "public": p["public"],
-          unlisted: p.unlisted,
-          users: p.listUsers(),
           local_folder: p.local_folder
         });
       }
@@ -1806,361 +1515,6 @@ this.Session = (function() {
               });
             };
           })(this));
-        }
-      }
-    }
-  };
-
-  Session.prototype.getPublicProjects = function(data) {
-    var found, i, j, k, l, language, len1, len2, len3, list, m, offset, p, ref, ref1, ref2, ref3, search, source, t, tags, type;
-    switch (data.ranking) {
-      case "new":
-        source = this.content.new_projects;
-        break;
-      case "top":
-        source = this.content.top_projects;
-        break;
-      default:
-        source = this.content.hot_projects;
-    }
-    list = [];
-    tags = Array.isArray(data.tags) ? data.tags : [];
-    search = typeof data.search === "string" ? data.search : "";
-    search = search.trim();
-    type = data.type || "all";
-    language = data.language || "";
-    offset = data.offset || 0;
-    for (i = j = ref = offset, ref1 = source.length - 1; j <= ref1; i = j += 1) {
-      p = source[i];
-      if (list.length >= 25) {
-        break;
-      }
-      offset = i + 1;
-      if (p["public"] && !p.deleted && !p.owner.flags.censored) {
-        if (search) {
-          found = false;
-          found |= p.title.toLowerCase().includes(search);
-          found |= p.description.toLowerCase().includes(search);
-          found |= p.owner.nick.toLowerCase().includes(search);
-          ref2 = p.tags;
-          for (k = 0, len1 = ref2.length; k < len1; k++) {
-            t = ref2[k];
-            found |= t.includes(search);
-          }
-          if (!found) {
-            continue;
-          }
-        }
-        if (tags.length > 0) {
-          found = false;
-          for (l = 0, len2 = tags.length; l < len2; l++) {
-            t = tags[l];
-            if (p.tags.indexOf(t) >= 0) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            continue;
-          }
-        }
-        if (type !== "all" && p.type !== type) {
-          continue;
-        }
-        if (language !== "" && ((p.language == null) || !p.language.includes(language))) {
-          continue;
-        }
-        list.push({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          poster: (p.files != null) && (p.files["sprites/poster.png"] != null),
-          icon: (p.files != null) && (p.files["sprites/icon.png"] != null),
-          type: p.type,
-          tags: p.tags,
-          flags: p.flags,
-          slug: p.slug,
-          owner: p.owner.nick,
-          owner_info: {
-            tier: p.owner.flags.tier,
-            profile_image: p.owner.flags.profile_image,
-            approved: p.owner.flags.approved
-          },
-          likes: p.likes,
-          liked: (this.user != null) && this.user.isLiked(p.id),
-          tags: p.tags,
-          date_published: p.first_published,
-          last_modified: p.last_modified,
-          graphics: p.graphics,
-          language: p.language,
-          libs: p.libs,
-          tabs: p.tabs,
-          plugins: p.plugins,
-          libraries: p.libraries,
-          networking: p.networking
-        });
-      }
-    }
-    tags = [];
-    ref3 = this.content.sorted_tags;
-    for (m = 0, len3 = ref3.length; m < len3; m++) {
-      t = ref3[m];
-      tags.push(t.tag);
-      if (tags.length > 50) {
-        break;
-      }
-    }
-    return this.send({
-      name: "public_projects",
-      list: list,
-      tags: tags,
-      offset: offset,
-      request_id: data.request_id
-    });
-  };
-
-  Session.prototype.getPublicPlugins = function(data) {
-    var j, len1, list, p, source;
-    source = this.content.plugin_projects;
-    list = [];
-    for (j = 0, len1 = source.length; j < len1; j++) {
-      p = source[j];
-      if (p["public"] && !p.deleted && !p.owner.flags.censored) {
-        list.push({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          poster: (p.files != null) && (p.files["sprites/poster.png"] != null),
-          type: p.type,
-          tags: p.tags,
-          flags: p.flags,
-          slug: p.slug,
-          owner: p.owner.nick,
-          owner_info: {
-            tier: p.owner.flags.tier,
-            profile_image: p.owner.flags.profile_image,
-            approved: p.owner.flags.approved
-          },
-          likes: p.likes,
-          liked: (this.user != null) && this.user.isLiked(p.id),
-          date_published: p.first_published,
-          last_modified: p.last_modified,
-          graphics: p.graphics,
-          language: p.language,
-          libs: p.libs,
-          tabs: p.tabs,
-          plugins: p.plugins,
-          libraries: p.libraries,
-          networking: p.networking
-        });
-      }
-    }
-    return this.send({
-      name: "public_plugins",
-      list: list,
-      request_id: data.request_id
-    });
-  };
-
-  Session.prototype.getPublicLibraries = function(data) {
-    var j, len1, list, p, source;
-    source = this.content.library_projects;
-    list = [];
-    for (j = 0, len1 = source.length; j < len1; j++) {
-      p = source[j];
-      if (p["public"] && !p.deleted && !p.owner.flags.censored) {
-        list.push({
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          poster: (p.files != null) && (p.files["sprites/poster.png"] != null),
-          type: p.type,
-          tags: p.tags,
-          flags: p.flags,
-          slug: p.slug,
-          owner: p.owner.nick,
-          owner_info: {
-            tier: p.owner.flags.tier,
-            profile_image: p.owner.flags.profile_image,
-            approved: p.owner.flags.approved
-          },
-          likes: p.likes,
-          liked: (this.user != null) && this.user.isLiked(p.id),
-          date_published: p.first_published,
-          last_modified: p.last_modified,
-          graphics: p.graphics,
-          language: p.language,
-          libs: p.libs,
-          tabs: p.tabs,
-          plugins: p.plugins,
-          libraries: p.libraries,
-          networking: p.networking
-        });
-      }
-    }
-    return this.send({
-      name: "public_libraries",
-      list: list,
-      request_id: data.request_id
-    });
-  };
-
-  Session.prototype.getPublicProject = function(msg) {
-    var owner, p, project, res;
-    owner = msg.owner;
-    project = msg.project;
-    if ((owner != null) && (project != null)) {
-      owner = this.content.findUserByNick(owner);
-      if (owner != null) {
-        p = owner.findProjectBySlug(project);
-        if ((p != null) && p["public"]) {
-          res = {
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            poster: (p.files != null) && (p.files["sprites/poster.png"] != null),
-            type: p.type,
-            tags: p.tags,
-            flags: p.flags,
-            slug: p.slug,
-            owner: p.owner.nick,
-            owner_info: {
-              tier: p.owner.flags.tier,
-              profile_image: p.owner.flags.profile_image,
-              approved: p.owner.flags.approved
-            },
-            likes: p.likes,
-            liked: (this.user != null) && this.user.isLiked(p.id),
-            date_published: p.first_published,
-            last_modified: p.last_modified,
-            graphics: p.graphics,
-            language: p.language,
-            libs: p.libs,
-            tabs: p.tabs,
-            plugins: p.plugins,
-            libraries: p.libraries,
-            networking: p.networking
-          };
-          return this.send({
-            name: "get_public_project",
-            project: res,
-            request_id: msg.request_id
-          });
-        }
-      }
-    }
-  };
-
-  Session.prototype.toggleLike = function(data) {
-    var project;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (!this.user.flags.validated) {
-      return this.sendError("not validated");
-    }
-    project = this.content.projects[data.project];
-    if (project != null) {
-      if (this.user.isLiked(project.id)) {
-        this.user.removeLike(project.id);
-        project.likes--;
-      } else {
-        this.user.addLike(project.id);
-        project.likes++;
-        if (project.likes >= 5) {
-          project.owner.progress.unlockAchievement("community/5_likes");
-        }
-      }
-      return this.send({
-        name: "project_likes",
-        likes: project.likes,
-        liked: this.user.isLiked(project.id),
-        request_id: data.request_id
-      });
-    }
-  };
-
-  Session.prototype.inviteToProject = function(data) {
-    var project, user;
-    if (this.user == null) {
-      return this.sendError("not connected", data.request_id);
-    }
-    user = this.content.findUserByNick(data.user);
-    if (user == null) {
-      return this.sendError("user not found", data.request_id);
-    }
-    project = this.user.findProject(data.project);
-    if (project == null) {
-      return this.sendError("project not found", data.request_id);
-    }
-    this.setCurrentProject(project);
-    return project.manager.inviteUser(this, user);
-  };
-
-  Session.prototype.acceptInvite = function(data) {
-    var j, k, len1, len2, li, link, ref, ref1;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    ref = this.user.project_links;
-    for (j = 0, len1 = ref.length; j < len1; j++) {
-      link = ref[j];
-      if (link.project.id === data.project) {
-        link.accept();
-        this.setCurrentProject(link.project);
-        if (link.project.manager != null) {
-          link.project.manager.propagateUserListChange();
-        }
-        ref1 = this.user.listeners;
-        for (k = 0, len2 = ref1.length; k < len2; k++) {
-          li = ref1[k];
-          li.getProjectList();
-        }
-      }
-    }
-  };
-
-  Session.prototype.removeProjectUser = function(data) {
-    var j, k, len1, len2, li, link, nick, project, ref, ref1, user;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (data.project != null) {
-      project = this.content.projects[data.project];
-    }
-    if (project == null) {
-      return this.sendError("project not found", data.request_id);
-    }
-    nick = data.user;
-    if (nick == null) {
-      return;
-    }
-    user = this.content.findUserByNick(nick);
-    if (this.user !== project.owner && this.user !== user) {
-      return;
-    }
-    ref = project.users;
-    for (j = 0, len1 = ref.length; j < len1; j++) {
-      link = ref[j];
-      if ((link != null) && (link.user != null) && link.user.nick === nick) {
-        link.remove();
-        if (this.user === project.owner) {
-          this.setCurrentProject(project);
-        } else {
-          this.send({
-            name: "project_link_deleted",
-            request_id: data.request_id
-          });
-        }
-        if (project.manager != null) {
-          project.manager.propagateUserListChange();
-        }
-        if (user != null) {
-          ref1 = user.listeners;
-          for (k = 0, len2 = ref1.length; k < len2; k++) {
-            li = ref1[k];
-            li.getProjectList();
-          }
         }
       }
     }
@@ -2455,20 +1809,6 @@ this.Session = (function() {
     }
   };
 
-  Session.prototype.tutorialCompleted = function(msg) {
-    if (this.user == null) {
-      return;
-    }
-    if ((msg.id == null) || typeof msg.id !== "string") {
-      return;
-    }
-    if (!msg.id.startsWith("tutorials/")) {
-      return;
-    }
-    this.user.progress.unlockAchievement(msg.id);
-    return this.checkUpdates();
-  };
-
   Session.prototype.checkUpdates = function() {
     if (this.user != null) {
       if (this.user.progress.achievements_update !== this.achievements_update) {
@@ -2509,57 +1849,6 @@ this.Session = (function() {
     });
   };
 
-  Session.prototype.buildProject = function(msg) {
-    var build, project;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (msg.project != null) {
-      project = this.content.projects[msg.project];
-    }
-    if (project != null) {
-      this.setCurrentProject(project);
-      if (!project.manager.canWrite(this.user)) {
-        return;
-      }
-      if (msg.target == null) {
-        return;
-      }
-      build = this.server.build_manager.startBuild(project, msg.target);
-      return this.send({
-        name: "build_project",
-        request_id: msg.request_id,
-        build: build != null ? build["export"]() : null
-      });
-    }
-  };
-
-  Session.prototype.getBuildStatus = function(msg) {
-    var build, project;
-    if (this.user == null) {
-      return this.sendError("not connected");
-    }
-    if (msg.project != null) {
-      project = this.content.projects[msg.project];
-    }
-    if (project != null) {
-      this.setCurrentProject(project);
-      if (!project.manager.canWrite(this.user)) {
-        return;
-      }
-      if (msg.target == null) {
-        return;
-      }
-      build = this.server.build_manager.getBuildInfo(project, msg.target);
-      return this.send({
-        name: "build_project",
-        request_id: msg.request_id,
-        build: build != null ? build["export"]() : null,
-        active_target: this.server.build_manager.hasBuilder(msg.target)
-      });
-    }
-  };
-
   Session.prototype.timeCheck = function() {
     if (Date.now() > this.last_active + 5 * 60000) {
       this.socket.close();
@@ -2569,15 +1858,6 @@ this.Session = (function() {
     if ((this.upload_request_activity != null) && Date.now() > this.upload_request_activity + 60000) {
       this.upload_request_id = -1;
       return this.upload_request_buffers = [];
-    }
-  };
-
-  Session.prototype.startBuilder = function(msg) {
-    if (msg.target != null) {
-      if (msg.key === this.server.config["builder-key"]) {
-        this.server.sessionClosed(this);
-        return this.server.build_manager.registerBuilder(this, msg.target);
-      }
     }
   };
 

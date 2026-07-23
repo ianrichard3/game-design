@@ -41,16 +41,10 @@ html(lang=language)
       div.sections
         div.selected#section-projects #{translator.get("Public Projects")}
         div#section-progress Stats & Achievements
-        // div#section-forum #{translator.get("Forum Posts & Replies")}
-
       div.section-content#projects
         each project in projects
           -var path = "/"+user+"/"+project.slug+"/"
-          -var explore = "/i/"+user+"/"+project.slug+"/"
           -var img = "/"+user+"/"+project.slug+"/sprites/icon.png"
-          
-          if project.type == "tutorial"
-            -path = "/tutorial"+path
           
           div.projectbox(id="#{project.slug}" style=project.files["sprites/poster.png"] != null ? "background: linear-gradient(to bottom, hsla(200,20%,20%,0.6), hsla(200,20%,20%,0.9)),url(/"+user+"/"+project.slug+"/poster.png) ; background-size: cover ;" : "")
             a.appicon(href=path)
@@ -61,9 +55,6 @@ html(lang=language)
               a.runbutton(href=path title=translator.get("Run"))
                 i.fa.fa-play
                 span #{translator.get("Run")}
-              a.explorebutton(href=explore title=translator.get("Explore"))
-                i.fa.fa-search
-                span #{translator.get("Explore")}
                 
             div.title #{project.title}
                 

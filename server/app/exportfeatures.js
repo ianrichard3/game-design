@@ -1,4 +1,4 @@
-var JSZip, Jimp, JobQueue, SERVER_EXPORT_README, fs, pug;
+var JSZip, Jimp, JobQueue, fs, pug;
 
 fs = require("fs");
 
@@ -154,7 +154,6 @@ this.ExportFeatures = (function() {
       type: project.type,
       language: project.language,
       graphics: project.graphics,
-      networking: project.networking,
       libs: project.libs,
       tabs: project.tabs,
       plugins: project.plugins,
@@ -237,9 +236,6 @@ this.ExportFeatures = (function() {
     return this.webapp.app.get(/^\/[^\/\|\?\&\.]+\/[^\/\|\?\&\.]+\/([^\/\|\?\&\.]+\/)?publish\/html\/$/, (function(_this) {
       return function(req, res) {
         var access, assets_list, fn, fonts, fullsource, g, i, images, j, k, l, len, len1, len2, len3, lib, libs, manager, maps_dict, music_list, n, optlib, p, proglang, project, queue, ref, ref1, ref2, s, sounds_list, user, wrapsource, zip;
-        if ((req.query != null) && (req.query.server != null)) {
-          return _this.publishServer(req, res);
-        }
         access = _this.webapp.getProjectAccess(req, res);
         if (access == null) {
           return;
@@ -323,8 +319,7 @@ this.ExportFeatures = (function() {
               aspect: project.aspect,
               libs: JSON.stringify(project.libs),
               code: fullsource,
-              language: project.language,
-              use_server: project.networking || false
+              language: project.language
             }
           });
           zip.file("index.html", html);
@@ -565,179 +560,8 @@ this.ExportFeatures = (function() {
     })(this));
   };
 
-  ExportFeatures.prototype.publishServer = function(req, res) {
-    var access, assets_list, fn, fonts, fullsource, g, i, images, j, k, l, len, len1, len2, len3, lib, libs, manager, maps_dict, music_list, n, optlib, proglang, project, queue, ref, ref1, ref2, s, server_src, sounds_list, user, wrapsource, zip;
-    access = this.webapp.getProjectAccess(req, res);
-    if (access == null) {
-      return;
-    }
-    user = access.user;
-    project = access.project;
-    manager = this.webapp.getProjectManager(project);
-    zip = new JSZip;
-    maps_dict = {};
-    images = [];
-    assets_list = [];
-    fonts = [];
-    sounds_list = [];
-    music_list = [];
-    fullsource = "\n\n";
-    server_src = "";
-    wrapsource = function(s) {
-      return s;
-    };
-    if (project.language === "microscript_v2") {
-      wrapsource = function(s, f) {
-        if (/^\s*\/\/\s*javascript\s*\n/.test(s)) {
-          return '\nsystem.javascript("""\n\n' + s.replace(/\\/g, "\\\\") + '\n\n""")\n';
-        } else {
-          return "\n// file: " + f + "\nfunction()\n" + s + "\nend()\n";
-        }
-      };
-    }
-    libs = [];
-    if ((project.graphics != null) && typeof project.graphics === "string") {
-      g = project.graphics.toLowerCase();
-      if (this.webapp.concatenator.alt_players[g] != null) {
-        libs = [].concat(this.webapp.concatenator.alt_players[g].lib_path);
-      }
-    }
-    ref = project.libs;
-    for (j = 0, len = ref.length; j < len; j++) {
-      optlib = ref[j];
-      lib = this.webapp.concatenator.optional_libs[optlib];
-      if (lib != null) {
-        libs.push(lib.lib_path);
-      }
-    }
-    proglang = this.webapp.concatenator.language_engines[project.language];
-    if ((proglang != null) && proglang.scripts) {
-      ref1 = proglang.scripts;
-      for (k = 0, len1 = ref1.length; k < len1; k++) {
-        s = ref1[k];
-        libs.push("../static" + s);
-      }
-    }
-    if ((proglang != null) && (proglang.lib_path != null)) {
-      ref2 = proglang.lib_path;
-      for (l = 0, len2 = ref2.length; l < len2; l++) {
-        s = ref2[l];
-        libs.push(s);
-      }
-    }
-    queue = new JobQueue((function(_this) {
-      return function() {
-        var config_json, package_json, resources;
-        resources = JSON.stringify({
-          images: images,
-          assets: assets_list,
-          maps: maps_dict,
-          sounds: sounds_list,
-          music: music_list
-        });
-        resources = "var resources = " + resources + ";\n";
-        resources += "var graphics = \"" + project.graphics + "\";\n";
-        server_src += "\n\n" + (_this.webapp.concatenator.getServerEngineExport(project.graphics));
-        server_src = "var window = global ;\n\nvar start = function() {\n  window.player = new this.Player(function(event) {\n    if (event.name == \"started\") {\n      // signal that the game is started\n    }\n    else if (event.name == \"log\") {\n      // console.info(event.data) ;\n    }\n  }) ;\n}\n\nvar resources = " + (JSON.stringify(resources)) + ";\nvar graphics = \"" + project.graphics + "\";\n\nglobal.location = {\n  pathname: \"\",\n  hash: \"\"\n}\nglobal.navigator = {\n  language: \"en\"\n}\n\nwindow.ms_libs = [] ;\n\nserver_code = `\n" + (fullsource.replace(/`/g, "\\\`")) + "\n`\n      " + server_src + "\n\nfor (const prop in this) {\n  global[prop] = this[prop] ;\n}\n\nvar fs = require(\"fs\") ;\nfs.readFile(\"./config.json\",(err,data)=> {\n  global.server_port = 3000 ;\n  if (! err) {\n    console.info(\"config.json loaded\") ;\n    try {\n      var config = JSON.parse(data) ;\n      global.server_port = config.port || 3000 ;\n    } catch (err) {\n      console.info(\"could not parse config file\") ;\n    }\n  } else {\n    console.info(\"could not read config file\") ;\n  }\n  console.info( \"starting with port set to: \"+global.server_port ) ;\n  start() ;\n}) ;";
-        zip.file("server.js", server_src);
-        package_json = {
-          name: project.slug,
-          version: "1.0.0",
-          description: "",
-          main: "server.js",
-          scripts: {
-            start: "node server.js"
-          },
-          author: project.owner.nick,
-          license: "",
-          dependencies: {
-            ws: "^8.10.0"
-          }
-        };
-        config_json = {
-          port: 3000
-        };
-        zip.file("package.json", JSON.stringify(package_json, null, 2));
-        zip.file("config.json", JSON.stringify(config_json, null, 2));
-        zip.file("README.md", SERVER_EXPORT_README);
-        return zip.generateAsync({
-          type: "nodebuffer"
-        }).then(function(content) {
-          res.setHeader("Content-Type", "application/zip");
-          res.setHeader("Content-Disposition", "attachement; filename=\"" + project.slug + ".zip\"");
-          res.setHeader("Cache-Control", "no-cache");
-          return res.send(content);
-        });
-      };
-    })(this));
-    fn = (function(_this) {
-      return function(lib, i) {
-        return queue.add(function() {
-          return fs.readFile(lib, function(err, data) {
-            if (data != null) {
-              data = data.toString("utf-8");
-              server_src += "\n\n" + data;
-            }
-            return queue.next();
-          });
-        });
-      };
-    })(this);
-    for (i = n = 0, len3 = libs.length; n < len3; i = ++n) {
-      lib = libs[i];
-      fn(lib, i);
-    }
-    queue.add((function(_this) {
-      return function() {
-        return manager.listFiles("maps", function(maps) {
-          var fn1, len4, map, o;
-          fn1 = function(map) {
-            return queue.add(function() {
-              return project.getStorage().read(user.id + "/" + project.id + "/maps/" + map.file, "text", function(content) {
-                if (content != null) {
-                  maps_dict[map.file.split(".")[0].replace(/-/g, "/")] = content;
-                }
-                return queue.next();
-              });
-            });
-          };
-          for (o = 0, len4 = maps.length; o < len4; o++) {
-            map = maps[o];
-            fn1(map);
-          }
-          return queue.next();
-        });
-      };
-    })(this));
-    queue.add((function(_this) {
-      return function() {
-        return manager.listFiles("ms", function(ms) {
-          var fn1, len4, o, src;
-          fn1 = function(src) {
-            return queue.add(function() {
-              return project.getStorage().read(user.id + "/" + project.id + "/ms/" + src.file, "text", function(content) {
-                if (content != null) {
-                  fullsource += wrapsource(content, src.file.replace(/-/g, "/")) + "\n\n";
-                }
-                return queue.next();
-              });
-            });
-          };
-          for (o = 0, len4 = ms.length; o < len4; o++) {
-            src = ms[o];
-            fn1(src);
-          }
-          return queue.next();
-        });
-      };
-    })(this));
-    return queue.start();
-  };
-
   return ExportFeatures;
 
 })();
-
-SERVER_EXPORT_README = "# Running your microStudio game server\n\nPreliminary step: you should have NodeJS installed on your server.\n\nAfter unzipping the server export and changing directory to the folder containing this README:\n\n* Run `npm install`\n* Edit `config.json` to set the desired port for your game server\n* Run `npm run start` to start your game server\n\nYou can test your server by running your game locally. You should set the address of your own server\nwhen creating a new ServerConnection from the client, example: `connection = new ServerConnection('ws://127.0.0.1:3000')`.";
 
 module.exports = this.ExportFeatures;

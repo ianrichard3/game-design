@@ -22,18 +22,6 @@ this.DocEditor = (function() {
         return _this.editorContentsChanged();
       };
     })(this));
-    document.getElementById("doceditor-start-tutorial").addEventListener("click", (function(_this) {
-      return function() {
-        var p, url;
-        p = _this.app.project;
-        if (p["public"]) {
-          url = location.origin + ("/tutorial/" + p.owner.nick + "/" + p.slug + "/");
-        } else {
-          url = location.origin + ("/tutorial/" + p.owner.nick + "/" + p.slug + "/" + p.code + "/");
-        }
-        return window.open(url, "_blank");
-      };
-    })(this));
   }
 
   DocEditor.prototype.editorContentsChanged = function() {
@@ -102,13 +90,7 @@ this.DocEditor = (function() {
     return this.checkTutorial();
   };
 
-  DocEditor.prototype.checkTutorial = function() {
-    if ((this.app.project != null) && this.app.project.type === "tutorial") {
-      return document.getElementById("doceditor-start-tutorial").style.display = "block";
-    } else {
-      return document.getElementById("doceditor-start-tutorial").style.display = "none";
-    }
-  };
+  DocEditor.prototype.checkTutorial = function() {};
 
   return DocEditor;
 
