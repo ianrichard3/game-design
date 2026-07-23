@@ -1,0 +1,136 @@
+div.usersettings#usersettings
+  div.section-menu#usersettings-menu
+    div.selected#usersettings-menu-settings #{translator.get("Settings")}
+      i.fa.fa-cogs
+    div#usersettings-menu-profile #{translator.get("Profile")}
+      i.fas.fa-user-circle
+    div#usersettings-menu-progress #{translator.get("Stats & Achievements")}
+      i.fas.fa-chart-bar
+
+  div.section-content.usersettings-page#usersettings-settings
+    h1 #{translator.get("User Settings")}
+    div.usersetting#usersetting-block-nickname
+      h3 #{translator.get("Nickname")}
+      input#usersetting-nick(type="text")
+      div.validate-button-container#usersetting-nick-button
+        div.validate-button <i class="fa fa-check"></i> #{translator.get("Change nickname")}
+      div.error#usersetting-nick-error
+      div.tip #{translator.get("Your nickname will be displayed publicly.")}
+
+    div.usersetting#usersetting-block-email
+      h3 #{translator.get("E-mail Address")}
+      input#usersetting-email(type="text")
+      div.validate-button-container#usersetting-email-button
+        div.validate-button <i class="fa fa-check"></i> #{translator.get("Change e-mail")}
+      div.error#usersetting-email-error
+      br
+
+    div.usersetting#usersetting-password
+      div#usersetting-change-password-view
+        h3 #{translator.get("Change Password")}
+        div(style="margin:10px 0px")
+          input#usersetting-password-current(type="password")
+          div.tip #{translator.get("Current Password")}
+        div(style="margin:10px 0px")
+          input#usersetting-password-new1(type="password")
+          div.tip #{translator.get("New Password")}
+        div(style="margin:10px 0px")
+          input#usersetting-password-new2(type="password")
+          div.tip #{translator.get("Repeat New Password")}
+
+        div#usersetting-password-error
+
+      div.button#usersetting-change-password
+        i.fas.fa-key
+        span #{translator.get("Change password")}
+
+    div.usersetting#email-not-validated
+      p #{translator.get("Your e-mail address is not validated yet. Check your e-mails and click on the validation link we sent to you. In case you did not receive the validation e-mail yet, use the button below to resend:")}
+      div.button#resend-validation-email <i class="fa fa-paper-plane"></i> #{translator.get("Resend validation e-mail")}
+      br
+      div#validation-email-resent(style="display: none;") #{translator.get("We have just resent a validation e-mail.")}
+
+    //- div.usersetting
+    //-   div.button#change-password <i class="fa fa-sync-alt"></i> #{translator.get("Change password")}
+
+    div.usersetting#usersetting-block-newsletter
+      h3 #{translator.get("Newsletter")}
+      input(type="checkbox" id="subscribe-newsletter")
+      label(for="subscribe-newsletter") #{translator.get("Receive newsletter")}
+      br
+      span.tip #{translator.get("We will send you an information email no more than once a month.")}
+
+    div.usersetting#usersetting-block-account-type
+      h3 #{translator.get("Account Type")}
+      div#usersettings-account-type
+
+    div.usersetting#usersetting-block-storage
+      h3 #{translator.get("Storage")}
+      span#usersettings-storage
+
+    div.usersetting#experimental-features-setting
+      h3 #{translator.get("Experimental features")}
+      input(type="checkbox" id="experimental-features")
+      label(for="experimental-features") #{translator.get("Enable experimental features")}
+      br
+      span.tip #{translator.get("Experimental features can change, break or be removed anytime. You are warned!")}
+
+
+    div.usersetting#advanced
+      div.button#open-translation-app <i class="fa fa-globe"></i> #{translator.get("Open translation tool")}
+
+    div.usersetting#delete-account(style="display:none")
+      h3 #{translator.get("DANGER ZONE")}
+      h3 #{translator.get("Delete my account")}
+      p #{translator.get("You can delete your account permanently. Deletion is immediate and cannot be undone. All the projects you own and all your information will be permanently deleted from our servers.")}
+      div.button.bg-green#show-account-deletion <i class="fas fa-exclamation-triangle"></i> #{translator.get("Show account deletion form")}
+      div#delete-account-form(style="display:none")
+        div(style="margin:20px 0px")
+          input#delete-account-confirm(type="text" placeholder="DELETE MY ACCOUNT" autocomplete="off")
+          div.tip #{translator.get("Type exactly DELETE MY ACCOUNT")}
+        div(style="margin:20px 0px")
+          input#delete-account-password(type="password" placeholder="password")
+          div.tip #{translator.get("Your Password")}
+        div.button#delete-account-button <i class="fa fa-trash"></i> #{translator.get("Delete account")}
+        div#delete-account-error(style="margin-top:20px")
+
+
+  div.section-content.usersettings-page#usersettings-profile(style="display: none")
+    h1 #{translator.get("Your Profile")}
+
+    div.usersetting
+      h3 #{translator.get("User Description")}
+      textarea#usersettings-profile-description
+      div.tip #{translator.get("Tell us more about yourself (only if you wish to). This text will be displayed on your public page.")}
+
+    div.usersetting
+      h3 #{translator.get("Profile Image")}
+      div#usersettings-profile-image
+        i.fas.fa-user-circle
+        img(style="display:none")
+        i.fas.fa-times-circle(title=translator.get("Remove Profile Image"))
+
+      div.tip #{translator.get("Drop your image here. This image will be displayed publicly, along with your nickname.")}
+
+    div.usersetting
+      h3 #{translator.get("Check your public page")}
+      a#user-public-page(target="_blank") microstudio.io/
+      div.tip #{translator.get("Your public page displays your nickname, description, profile image and a list of your public projects.")}
+
+
+  div.section-content.usersettings-page#usersettings-progress(style="display: none")
+    h1 #{translator.get("Your Progress")}
+
+    div#user-progress-level
+
+    h2 #{translator.get("Statistics")}
+    div#user-progress-statistics
+
+    h2 #{translator.get("Achievements")}
+      span#number-of-achievements
+    div#user-progress-achievements
+
+div.usersettings#translation-app
+  div
+    div#translation-app-back-button <i class="fa fa-arrow-left"></i> #{translator.get("Back")}
+  div#translation-app-contents

@@ -1,0 +1,15 @@
+plugins/
+server/.greenlockrc
+server/greenlock.d
+config.json
+server/node_modules/
+server/relay/config.json
+files/
+data/
+.DS_Store
+.vs/
+microstudio.wiki/
+ignore/
+logs/
+server/blocked_ips.txt
+server/blocked_ips.bak

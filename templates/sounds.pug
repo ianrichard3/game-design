@@ -1,0 +1,48 @@
+div.assets-left
+  div.assets-bar#sound-asset-bar
+    div.create-asset-button <i class="fa fa-plus-square"></i> #{translator.get("Sound")}
+    i.fa.fa-folder-plus.create-folder-button(title=translator.get("New Folder"))
+  div.assets-drop
+    div <i class="fas fa-arrow-circle-down"></i>
+    div #{translator.get("You can drop audio files here, in WAV, Ogg or FLAC format.")}
+    div(style="margin-top: 20px")
+      small #{translator.get("Note: Ogg files cannot be played back on Safari / iOS.")}
+
+  div.create-asset-button#create-sound-button(style="display:none") <i class="fa fa-plus-square"></i> #{translator.get("Add Sound")}
+
+  div.assetlist#soundlist
+    div.asset-list#sound-list
+
+div.horizontal-splitbar#sounds-splitbar
+
+div.sounds-right
+  div.assetinfo#soundinfo
+    input(type="text" value="")#sound-name
+    div.validate-button-container#sound-name-button
+      div.validate-button <i class="fa fa-check"></i> #{translator.get("Apply")}
+
+    div.buttons
+      div#undo-sound(title=translator.get("Undo"))
+        i.fa.fa-undo
+      div#redo-sound(title=translator.get("Redo"))
+        i.fa.fa-redo
+
+      div#copy-sound(title=translator.get("Copy"))
+        i.fa.fa-copy
+      div#cut-sound(title=translator.get("Cut"))
+        i.fa.fa-cut
+      div#paste-sound(title=translator.get("Paste"))
+        i.fa.fa-paste
+
+      div#delete-sound.delete(title=translator.get("Delete Sound"))
+        i.fa.fa-trash
+
+  div#sound-editor-locked
+  div#sample-editor
+    div#sample-editor-bg
+    div#sample-editor-content
+      div.placeholder #{translator.get("Sound files can be imported on the left.")}
+      p #{translator.get("I am currently working on Music Power Up, a gamified audio production app. The free demo version of the app will land here in the future, allowing you to create full chiptunes and fx for your microStudio games.")}
+      p #{translator.get("You can support my work by wishlisting the game on Steam! Thanks a ton :-)")}
+
+  div#sample-tools

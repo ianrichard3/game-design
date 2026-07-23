@@ -1,0 +1,30 @@
+h1 #{translator.get("Version control")}
+p#git-panel-unlinked #{translator.get("This project isn't linked to a local folder yet. Link one from the Settings tab to use git.")}
+
+div#git-panel-linked
+  p.tip #{translator.get("Git operations run against the folder this project is linked to, using the server's own git installation and credentials.")}
+
+  div#git-status-line
+    span#git-branch
+    span#git-ahead-behind
+    div.button1#git-refresh <i class="fa fa-sync"></i> #{translator.get("Refresh")}
+
+  div#git-remote-line
+    input.input1#git-remote-url(type="text" placeholder="git@host:user/repo.git")
+    div.button1#git-set-remote <i class="fa fa-satellite-dish"></i> #{translator.get("Set remote 'origin'")}
+    div.button1#git-init <i class="fa fa-code-branch"></i> #{translator.get("git init")}
+
+  div#git-changed-files
+
+  div#git-commit-line
+    textarea#git-commit-message(placeholder=translator.get("Commit message"))
+    div.button1#git-commit <i class="fa fa-check"></i> #{translator.get("Commit")}
+
+  div#git-sync-line
+    div.button1#git-push <i class="fa fa-arrow-up"></i> #{translator.get("Push")}
+    div.button1#git-pull <i class="fa fa-arrow-down"></i> #{translator.get("Pull")}
+
+  div.tip.error#git-panel-error
+
+  h3 #{translator.get("Recent commits")}
+  div#git-log-list

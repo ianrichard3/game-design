@@ -1,0 +1,94 @@
+doctype html
+html
+  head
+    title Server [#{game.title}]
+    meta(http-equiv='content-type', content='text/html; charset=UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui=1')
+    meta(charset='UTF-8')
+    meta(name='description', content=game.description)
+
+    link(rel='icon', type='image/png', href="/"+game.author+"/"+game.pathcode+"/icon64.png")
+    link(rel="apple-touch-icon" sizes="180x180" href="/"+game.author+"/"+game.pathcode+"/icon180.png")
+    link(rel="icon" type="image/png" sizes="32x32" href="/"+game.author+"/"+game.pathcode+"/icon32.png")
+    link(rel="icon" type="image/png" sizes="16x16" href="/"+game.author+"/"+game.pathcode+"/icon16.png")
+
+    link(rel="stylesheet" href="/lib/fontlib/fontawesome/css/all.css")
+    link(rel="stylesheet" href="/css/server.css")
+
+  body.noselect.custom-cursor(oncontextmenu='return false;')
+    #header 
+      img.logo#logo(src="/img/microstudiologo.svg" alt="microStudio" title="microStudio")
+      span #{translator.get("SERVER")} - #{game.title}
+
+    div#terminal
+      div#terminal-view
+        div#terminal-lines
+      div#terminal-input-line
+        div#terminal-input-gt
+          i.fa.fa-angle-right
+        div#terminal-input-container
+          input#terminal-input(autocomplete="off" name="terminalinput")
+
+    if debug || server
+      script(type="text/javascript").
+        window.skip_service_worker = true ;
+        if (navigator.serviceWorker != null) {
+          navigator.serviceWorker.getRegistrations().then( function(registrations) { for(let registration of registrations) { registration.unregister(); } });
+        }
+
+    script(type="text/javascript").
+      !{game.resources}
+
+    script(type="text/javascript").
+      var orientation = '!{game.orientation}' ;
+      var aspect = '!{game.aspect}' ;
+      var graphics = '!{game.graphics}' ;
+      var ms_libs = !{game.libs} ;
+      window.ms_in_editor = !{debug} ;
+      window.ms_project_id = '!{game.author}/!{game.name}' ;
+
+      if (location.href.includes("?srv") && parent == window) {
+        location.href = location.href.replace("?srv","?server") ;
+      }
+
+    each file in javascript_files
+      script(src=file)
+
+  script(id="code" type="text/x-project-code").
+    !{game.code}
+
+  if language == "python"
+    script(type="text/python").
+      from browser import window
+      import traceback
+      import sys
+
+      def execute(str,filename):
+        try:
+          code = compile(str,filename,"exec")
+          return exec(code,globals())
+        except BaseException as err:
+          exp = traceback.format_exception(err)
+          sys.stderr.write(exp)
+        except Error as err:
+          exp = traceback.format_exception(err)
+          sys.stderr.write(exp)
+
+      window.python = execute
+      window.glob = globals()
+      window.pythonLoaded()
+
+    script.
+      window.pythonLoaded = function() {
+        window.player = new Player() ;
+        document.body.focus() ;
+      }
+      window.addEventListener("load",function() {
+        brython() ;
+      }) ;
+  else
+    script(type="text/javascript").
+      window.addEventListener("load",function() {
+        window.player = new Player() ;
+        document.body.focus() ;
+      }) ;

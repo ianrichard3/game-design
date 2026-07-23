@@ -1,0 +1,138 @@
+div.projectoptions#projectoptions
+  div#projectoptions-left
+    img#projectoptions-icon
+
+  div#projectoptions-right
+    div#projectoptions-general
+      div#projectoptions-general-content
+        div.projectoption
+          h3 #{translator.get("Project Title")}
+          input#projectoption-name(type="text")
+          br
+          //span.tip #{translator.get("The display name of your project")}
+
+        div.projectoption
+          h3 #{translator.get("Project Slug")}
+          span#projectoption-slugprefix microstudio.io/username/
+          input.sluginput#projectoption-slug(type="text")
+          div.validate-button-container#project-slug-button
+            div.validate-button <i class="fa fa-check"></i> #{translator.get("Apply")}
+
+          span /
+          br
+          // span.tip #{translator.get("The identifier used to build the URL of your project")}
+
+
+        div.projectoption
+          h3 #{translator.get("Project Secret Code")}
+          span.tip #{translator.get("Secret URL for testing your project when not set to public")}
+          br
+          span#projectoption-codeprefix microstudio.io/username/
+          input.sluginput#projectoption-code(type="text")
+          div.validate-button-container#project-code-button
+            div.validate-button <i class="fa fa-check"></i> #{translator.get("Apply")}
+
+          span /
+          br
+
+        div.projectoption
+          h3 #{translator.get("Orientation")}
+          select#projectoption-orientation
+            option(value="any") #{translator.get("Any")}
+            option(value="portrait") #{translator.get("Portrait")}
+            option(value="landscape") #{translator.get("Landscape")}
+
+        div.projectoption
+          h3 #{translator.get("Aspect ratio")}
+          select#projectoption-aspect
+            option(value="free") #{translator.get("Free")}
+            option(value="2x1") #{translator.get("Force 2:1")}
+            option(value="16x9") #{translator.get("Force 16:9")}
+            option(value="4x3") #{translator.get("Force 4:3")}
+            option(value="1x1") #{translator.get("Force 1:1 (square)")}
+            option(value=">2x1") #{translator.get("2:1 or above")}
+            option(value=">16x9") #{translator.get("16:9 or above")}
+            option(value=">4x3") #{translator.get("4:3 or above")}
+            option(value=">1x1") #{translator.get("1:1 or above")}
+
+
+        div.projectoption#project-option-storage
+          h3 #{translator.get("Storage used")}
+          span#projectoption-storage-used
+
+        div.projectoption#project-option-local-folder
+          h3 #{translator.get("Local folder")}
+          span.tip #{translator.get("Link this project to a folder on the server's filesystem. It becomes the project's live storage - edit it with git or any other tool while the project stays open here.")}
+          br
+          div#project-local-folder-linked
+            span#project-local-folder-path
+            div.button1#project-local-folder-unlink <i class="fa fa-unlink"></i> #{translator.get("Unlink")}
+          div#project-local-folder-unlinked
+            input.input1#project-local-folder-input(type="text" placeholder=translator.get("Absolute path to a folder"))
+            div.button1#project-local-folder-link <i class="fa fa-link"></i> #{translator.get("Link")}
+          div.tip.error#project-local-folder-error
+
+        div#advanced-project-options-button
+          i.fa
+          span #{translator.get("Show advanced options")}
+
+        div#advanced-project-options
+          div.projectoption#project-option-type
+            h3 #{translator.get("Project Type")}
+            select#projectoption-type
+              option(value="app") #{translator.get("App (game, demo...)")}
+              option(value="library") #{translator.get("Library")}
+              option(value="plugin") #{translator.get("Plug-in")}
+              option(value="tutorial") #{translator.get("Tutorial")}
+              option(value="example") #{translator.get("Example")}
+              option(value="template") #{translator.get("Template")}
+
+            div.tip.library
+              p #{translator.get("Library")}
+              ul
+                li.tip #{translator.get("Library files to import should be stored in a 'lib' folder.")}
+                li.tip #{translator.get("Your demo app files must be outside the 'lib' folder.")}
+                li.tip #{translator.get("Document your library in the 'doc' tab of your project!")}
+
+          div.projectoption#project-option-language
+            h3 #{translator.get("Language support")}
+            select#projectoption-language
+              each val,key in language_engines
+                option(value=key) #{translator.get(val.title)}
+
+          div.projectoption#project-option-graphics
+            h3 #{translator.get("Graphics library")}
+            select#projectoption-graphics
+              option(value="M1") #{translator.get("basic graphics API")}
+              option(value="PIXI") #{translator.get("Pixi.js ")}
+              option(value="BABYLON") #{translator.get("Babylon.js")}
+              option(value="M2D") #{translator.get("micro 2D - Experimental - Built on Pixi.js")}
+              option(value="M3D") #{translator.get("micro 3D - Experimental - Built on Babylon.js")}
+
+            select.marginleft10#projectoption-graphics-version
+
+
+          div.projectoption#project-option-networking
+            h3 #{translator.get("Networking")}
+            input(type="checkbox" id="projectoption-networking")
+            label(for="projectoption-networking") #{translator.get("Enable networking features")}
+            div.tip #{translator.get("Create online multiplayer games using a client/server networking model")}
+
+          div.projectoption#project-option-libs
+            h3 #{translator.get("Additional tools and libraries")}
+            each val,key in optional_libs
+              input(type="checkbox" id="project-option-lib-"+key)
+              label(for="project-option-lib-"+key) #{translator.get(val.title)}
+              select.marginleft10(id="project-option-lib-"+key+"-version")
+              br
+
+    div#projectoptions-users
+      div#projectoptions-users-content
+        div.projectoption
+          h3 #{translator.get("Users")}
+          p #{translator.get("Here is where your grant other users access to edit your project. Users added here are granted full control on your project, except for adding or deleting other users.")}
+          div.userlist#project-user-list
+
+          div.adduser
+            input.username#add-project-user-nick(placeholder=translator.get("nickname"))
+            div.addbutton#add-project-user <i class="fa fa-user-plus"></i> #{translator.get("Add User")}

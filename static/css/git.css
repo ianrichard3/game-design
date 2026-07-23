@@ -1,0 +1,106 @@
+#git-section {
+  overflow: auto ;
+}
+
+#git-panel-linked > div {
+  margin: 15px 0 ;
+}
+
+#git-status-line, #git-remote-line, #git-sync-line {
+  display: flex ;
+  align-items: center ;
+  gap: 10px ;
+}
+
+#git-branch {
+  font-weight: bold ;
+}
+
+#git-ahead-behind {
+  color: hsl(30,100%,60%) ;
+}
+
+#git-changed-files {
+  padding: 10px 0 ;
+}
+#git-changed-files i {
+  margin-right: 10px ;
+  color: rgba(255,255,255,.7) ;
+}
+#git-changed-files > div {
+  margin: 2px ;
+  padding: 7px ;
+  background: rgba(255,255,255,.1) ;
+  border: solid 1px rgba(255,255,255,.1) ;
+}
+
+#git-changed-files > div.create { background: hsla(160,50%,50%,.5) ; }
+#git-changed-files .create i::before { content: "\f055" ; }
+
+#git-changed-files > div.upgrade { background: hsla(200,50%,50%,.5) ; }
+#git-changed-files .upgrade i::before { content: "\f062" ; }
+
+#git-changed-files > div.downgrade { background: hsla(30,100%,50%,.5) ; }
+#git-changed-files .downgrade i::before { content: "\f063" ; }
+
+#git-changed-files > div.sync { background: hsla(270,50%,50%,.5) ; }
+#git-changed-files .sync i::before { content: "\f021" ; }
+
+#git-changed-files > div.delete { background: hsla(0,100%,50%,.5) ; font-weight: bold }
+#git-changed-files .delete i::before { content: "\f00d" ; }
+
+#git-commit-line {
+  display: flex ;
+  flex-direction: column ;
+  align-items: flex-start ;
+  gap: 10px ;
+}
+
+#git-commit-message {
+  width: 100% ;
+  max-width: 500px ;
+  min-height: 60px ;
+  border: none ;
+  border-radius: 3px ;
+  font-size: 16px ;
+  padding: 5px ;
+  background: rgba(255,255,255,.2);
+  color: rgba(255,255,255,.8);
+  font-family: "Source Sans Pro",Verdana ;
+  resize: vertical ;
+}
+
+#git-log-list {
+  padding: 10px 0 ;
+}
+
+.gitlogentry {
+  margin: 2px ;
+  padding: 7px ;
+  background: rgba(255,255,255,.1) ;
+  border: solid 1px rgba(255,255,255,.1) ;
+}
+.gitlogentry .hash {
+  font-family: monospace ;
+  color: hsl(200,50%,70%) ;
+  margin-right: 10px ;
+}
+.gitlogentry .meta {
+  color: rgba(255,255,255,.5) ;
+  font-size: 13px ;
+  margin-left: 10px ;
+}
+
+#git-panel-error:not(:empty) {
+  color: hsl(0,80%,65%) ;
+}
+
+#project-local-folder-linked {
+  display: flex ;
+  align-items: center ;
+  gap: 15px ;
+}
+
+#project-local-folder-path {
+  font-family: monospace ;
+}

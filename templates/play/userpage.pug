@@ -1,0 +1,107 @@
+doctype html
+html(lang=language)
+  head
+    title #{user} - microStudio
+    meta(http-equiv='content-type', content='text/html; charset=UTF-8')
+    meta(name="viewport" content="width=device-width, user-scalable=no, initial-scale=.6")
+    meta(charset='UTF-8')
+    meta(name='mobile-web-app-capable', content='yes')
+    meta(name='apple-mobile-web-app-capable', content='yes')
+    meta(name='description', content=user+" is on microStudio")
+      
+    link(rel="stylesheet" href="/lib/fontlib/fontawesome/css/all.css")
+      
+    link(rel="stylesheet" href="/lib/fontlib/ubuntu/index.css")
+    link(rel="stylesheet" href="/lib/fontlib/ubuntu-mono/index.css")
+    link(rel="stylesheet" href="/lib/fontlib/source-sans-pro/index.css")
+    link(rel="stylesheet" href="/lib/fontlib/source-sans-pro/700.css")
+      
+    link(rel="stylesheet" type="text/css" href="/css/userpage.css")
+    link(rel="stylesheet" type="text/css" href="/css/md.css")
+    if profile_image
+      link(rel="icon" type="image/png" href="/"+user+".png")
+    else
+      link(rel="icon" type="image/png" href="/img/favicon.png")
+        
+    script(src="/js/userpage/userpage.js")
+
+  body.noselect.custom-cursor(oncontextmenu='return false;')
+    header
+      div.headerdiv
+        a(href="/")
+          img.logo(src="/img/microstudiologo.svg")
+        
+    div.content
+      if profile_image
+        img.profile_image(src="/"+user+".png")
+          
+      div.username#user-nick #{user}
+      div.description.dark.md !{description}
+      
+      div.sections
+        div.selected#section-projects #{translator.get("Public Projects")}
+        div#section-progress Stats & Achievements
+        // div#section-forum #{translator.get("Forum Posts & Replies")}
+
+      div.section-content#projects
+        each project in projects
+          -var path = "/"+user+"/"+project.slug+"/"
+          -var explore = "/i/"+user+"/"+project.slug+"/"
+          -var img = "/"+user+"/"+project.slug+"/sprites/icon.png"
+          
+          if project.type == "tutorial"
+            -path = "/tutorial"+path
+          
+          div.projectbox(id="#{project.slug}" style=project.files["sprites/poster.png"] != null ? "background: linear-gradient(to bottom, hsla(200,20%,20%,0.6), hsla(200,20%,20%,0.9)),url(/"+user+"/"+project.slug+"/poster.png) ; background-size: cover ;" : "")
+            a.appicon(href=path)
+              div
+                img(src=img)
+                
+            div.buttons
+              a.runbutton(href=path title=translator.get("Run"))
+                i.fa.fa-play
+                span #{translator.get("Run")}
+              a.explorebutton(href=explore title=translator.get("Explore"))
+                i.fa.fa-search
+                span #{translator.get("Explore")}
+                
+            div.title #{project.title}
+                
+      div.section-content#progress
+        div#user-progress-level
+          div#user-progress-stat-level.user-progress-stat
+            div.user-progress-stat-value #{level}
+            div.user-progress-stat-label #{translator.get("Level")}
+          div#user-progress-stat-xp.user-progress-stat(style="background:linear-gradient(90deg, rgb(51, 119, 153) 0%, rgb(153, 51, 51) "+percent+"%, rgb(11, 13, 14) "+percent+"%)")
+            div.user-progress-stat-value #{xp}
+            div.user-progress-stat-label #{translator.get("XP")}
+            
+        h2 Statistics
+        div#user-progress-statistics
+          each s in stats
+            div.user-progress-stat
+              div.user-progress-stat-value #{s.value}
+                span.unit #{s.unit}
+              div.user-progress-stat-label #{s.name}
+              
+              
+        if achievements.length>0
+          h2 Achievements
+            span#number-of-achievements #{" "}(#{achievements.length})
+          div
+            each a in achievements
+              div.user-progress-achievement
+                img(src="/img/achievements/"+a.id+".png")
+                if a.info.xp>0
+                  div.bonus #{"XP bonus +"+a.info.xp}
+                div.date #{new Date(a.date).toLocaleDateString(language)}
+                h3 #{translator.get(a.info.name)}
+                p #{translator.get(a.info.description)}
+                if a.info.story != null
+                  p.story #{translator.get(a.info.story)}
+                div(style="clear:both")
+        
+        
+  
+    
+          

@@ -1,0 +1,23 @@
+{
+  "owner": "microstudio",
+  "title": "My Game",
+  "slug": "my-game",
+  "tags": [],
+  "orientation": "any",
+  "aspect": "free",
+  "platforms": [
+    "computer",
+    "phone",
+    "tablet"
+  ],
+  "controls": [
+    "touch",
+    "mouse"
+  ],
+  "type": "app",
+  "language": "microscript_v2",
+  "graphics": "M1",
+  "libs": [],
+  "date_created": 1784841620890,
+  "description": ""
+}
