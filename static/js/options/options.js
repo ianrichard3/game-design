@@ -102,6 +102,28 @@ this.Options = (function() {
         return _this.linkLocalFolder();
       };
     })(this));
+    this.app.appui.setAction("project-local-folder-browse", (function(_this) {
+      return function() {
+        return _this.browseLocalFolder();
+      };
+    })(this));
+    this.app.appui.setAction("project-local-folder-browser-up", (function(_this) {
+      return function() {
+        if (_this.local_folder_browser_parent != null) {
+          return _this.browseLocalFolder(_this.local_folder_browser_parent);
+        }
+      };
+    })(this));
+    this.app.appui.setAction("project-local-folder-browser-cancel", (function(_this) {
+      return function() {
+        return _this.closeLocalFolderBrowser();
+      };
+    })(this));
+    this.app.appui.setAction("project-local-folder-browser-select", (function(_this) {
+      return function() {
+        return _this.selectLocalFolderFromBrowser();
+      };
+    })(this));
     this.app.appui.setAction("project-local-folder-unlink", (function(_this) {
       return function() {
         return _this.unlinkLocalFolder();
@@ -233,6 +255,7 @@ this.Options = (function() {
     linked = document.getElementById("project-local-folder-linked");
     unlinked = document.getElementById("project-local-folder-unlinked");
     document.getElementById("project-local-folder-error").innerText = "";
+    this.closeLocalFolderBrowser();
     if (this.app.project.local_folder) {
       linked.style.display = "block";
       unlinked.style.display = "none";
@@ -242,6 +265,93 @@ this.Options = (function() {
       unlinked.style.display = "block";
       return document.getElementById("project-local-folder-input").value = "";
     }
+  };
+
+  Options.prototype.browseLocalFolder = function(folder) {
+    var generation, request;
+    this.local_folder_browser_generation = (this.local_folder_browser_generation || 0) + 1;
+    generation = this.local_folder_browser_generation;
+    this.local_folder_browser_path = null;
+    this.local_folder_browser_parent = null;
+    request = {
+      name: "browse_local_folders",
+      project: this.app.project.id
+    };
+    if (folder != null) {
+      request.path = folder;
+    }
+    return this.app.client.sendRequest(request, (function(_this) {
+      return function(msg) {
+        if (generation !== _this.local_folder_browser_generation) {
+          return;
+        }
+        if (msg.name === "error") {
+          return document.getElementById("project-local-folder-error").innerText = msg.error;
+        } else {
+          _this.local_folder_browser_path = msg.path;
+          _this.local_folder_browser_parent = msg.parent;
+          return _this.renderLocalFolderBrowser(msg);
+        }
+      };
+    })(this));
+  };
+
+  Options.prototype.renderLocalFolderBrowser = function(msg) {
+    var browser, empty, entries, entry, j, len, list, path_e, results, up;
+    browser = document.getElementById("project-local-folder-browser");
+    path_e = document.getElementById("project-local-folder-browser-path");
+    up = document.getElementById("project-local-folder-browser-up");
+    list = document.getElementById("project-local-folder-browser-list");
+    browser.style.display = "block";
+    path_e.innerText = msg.path || "";
+    up.style.display = msg.parent != null ? "block" : "none";
+    list.innerText = "";
+    entries = msg.entries || [];
+    if (entries.length === 0) {
+      empty = document.createElement("span");
+      empty.className = "project-local-folder-browser-empty";
+      empty.innerText = this.app.translator.get("No subfolders");
+      return list.appendChild(empty);
+    } else {
+      results = [];
+      for (j = 0, len = entries.length; j < len; j++) {
+        entry = entries[j];
+        results.push((function(_this) {
+          return function(entry) {
+            var button, icon;
+            button = document.createElement("button");
+            button.type = "button";
+            button.className = "project-local-folder-browser-entry";
+            icon = document.createElement("i");
+            icon.className = "fa fa-folder";
+            button.appendChild(icon);
+            button.appendChild(document.createTextNode("  " + entry.name));
+            button.addEventListener("click", function() {
+              return _this.browseLocalFolder(entry.path);
+            });
+            return list.appendChild(button);
+          };
+        })(this)(entry));
+      }
+      return results;
+    }
+  };
+
+  Options.prototype.closeLocalFolderBrowser = function() {
+    var browser;
+    this.local_folder_browser_generation = (this.local_folder_browser_generation || 0) + 1;
+    browser = document.getElementById("project-local-folder-browser");
+    if (browser != null) {
+      return browser.style.display = "none";
+    }
+  };
+
+  Options.prototype.selectLocalFolderFromBrowser = function() {
+    if (this.local_folder_browser_path == null) {
+      return;
+    }
+    document.getElementById("project-local-folder-input").value = this.local_folder_browser_path;
+    return this.closeLocalFolderBrowser();
   };
 
   Options.prototype.linkLocalFolder = function() {

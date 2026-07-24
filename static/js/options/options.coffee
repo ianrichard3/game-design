@@ -65,6 +65,18 @@ class @Options
     @app.appui.setAction "project-local-folder-link",()=>
       @linkLocalFolder()
 
+    @app.appui.setAction "project-local-folder-browse",()=>
+      @browseLocalFolder()
+
+    @app.appui.setAction "project-local-folder-browser-up",()=>
+      @browseLocalFolder @local_folder_browser_parent if @local_folder_browser_parent?
+
+    @app.appui.setAction "project-local-folder-browser-cancel",()=>
+      @closeLocalFolderBrowser()
+
+    @app.appui.setAction "project-local-folder-browser-select",()=>
+      @selectLocalFolderFromBrowser()
+
     @app.appui.setAction "project-local-folder-unlink",()=>
       @unlinkLocalFolder()
 
@@ -150,6 +162,7 @@ class @Options
     linked = document.getElementById("project-local-folder-linked")
     unlinked = document.getElementById("project-local-folder-unlinked")
     document.getElementById("project-local-folder-error").innerText = ""
+    @closeLocalFolderBrowser()
 
     if @app.project.local_folder
       linked.style.display = "block"
@@ -159,6 +172,66 @@ class @Options
       linked.style.display = "none"
       unlinked.style.display = "block"
       document.getElementById("project-local-folder-input").value = ""
+
+  browseLocalFolder:(folder)->
+    @local_folder_browser_generation = (@local_folder_browser_generation or 0) + 1
+    generation = @local_folder_browser_generation
+    @local_folder_browser_path = null
+    @local_folder_browser_parent = null
+    request = {
+      name: "browse_local_folders"
+      project: @app.project.id
+    }
+    request.path = folder if folder?
+
+    @app.client.sendRequest request,(msg)=>
+      return if generation != @local_folder_browser_generation
+      if msg.name == "error"
+        document.getElementById("project-local-folder-error").innerText = msg.error
+      else
+        @local_folder_browser_path = msg.path
+        @local_folder_browser_parent = msg.parent
+        @renderLocalFolderBrowser msg
+
+  renderLocalFolderBrowser:(msg)->
+    browser = document.getElementById("project-local-folder-browser")
+    path_e = document.getElementById("project-local-folder-browser-path")
+    up = document.getElementById("project-local-folder-browser-up")
+    list = document.getElementById("project-local-folder-browser-list")
+    browser.style.display = "block"
+    path_e.innerText = msg.path or ""
+    up.style.display = if msg.parent? then "block" else "none"
+    list.innerText = ""
+
+    entries = msg.entries or []
+    if entries.length == 0
+      empty = document.createElement "span"
+      empty.className = "project-local-folder-browser-empty"
+      empty.innerText = @app.translator.get "No subfolders"
+      list.appendChild empty
+    else
+      for entry in entries
+        do (entry)=>
+          button = document.createElement "button"
+          button.type = "button"
+          button.className = "project-local-folder-browser-entry"
+          icon = document.createElement "i"
+          icon.className = "fa fa-folder"
+          button.appendChild icon
+          button.appendChild document.createTextNode "  #{entry.name}"
+          button.addEventListener "click",()=>@browseLocalFolder entry.path
+          list.appendChild button
+
+  closeLocalFolderBrowser:()->
+    @local_folder_browser_generation = (@local_folder_browser_generation or 0) + 1
+    browser = document.getElementById("project-local-folder-browser")
+    if browser?
+      browser.style.display = "none"
+
+  selectLocalFolderFromBrowser:()->
+    return unless @local_folder_browser_path?
+    document.getElementById("project-local-folder-input").value = @local_folder_browser_path
+    @closeLocalFolderBrowser()
 
   linkLocalFolder:()->
     folder = document.getElementById("project-local-folder-input").value.trim()

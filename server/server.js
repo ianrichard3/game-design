@@ -30,7 +30,10 @@ this.Server = (function() {
     this.exit = bind(this.exit, this);
     process.chdir(__dirname);
     this.app_data = this.config.app_data || "..";
-    this.PORT = this.config.port || 8089;
+    this.PORT = this.config.port;
+    if (!(typeof this.PORT === "number" && this.PORT >= 0 && this.PORT <= 65535 && this.PORT % 1 === 0)) {
+      this.PORT = 8089;
+    }
     this.create();
   }
 
@@ -119,21 +122,42 @@ this.Server = (function() {
   };
 
   Server.prototype.exit = function() {
+    var base, finish, finished;
     if (this.exited) {
-      process.exit(0);
+      return;
     }
-    this.httpserver.close();
-    this.io.close();
-    this.db.close();
-    this.content.close();
+    this.exited = true;
     clearInterval(this.exitcheck);
     clearInterval(this.session_check);
-    this.exited = true;
-    return setTimeout(((function(_this) {
-      return function() {
-        return _this.exit();
-      };
-    })(this)), 5000);
+    if (this.io != null) {
+      this.io.clients.forEach((function(_this) {
+        return function(socket) {
+          return socket.terminate();
+        };
+      })(this));
+      this.io.close();
+    }
+    if (this.content != null) {
+      this.content.close();
+    }
+    if (this.db != null) {
+      this.db.close();
+    }
+    finished = false;
+    finish = function() {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      return process.exit(0);
+    };
+    if (this.httpserver != null) {
+      this.httpserver.close(finish);
+      if (typeof (base = this.httpserver).closeAllConnections === "function") {
+        base.closeAllConnections();
+      }
+    }
+    return setTimeout(finish, 1000);
   };
 
   Server.prototype.sessionCheck = function() {
@@ -159,8 +183,106 @@ this.Server = (function() {
     return true;
   };
 
+  Server.prototype.pathIsWithin = function(root, candidate) {
+    var relative;
+    relative = path.relative(path.resolve(root), path.resolve(candidate));
+    return relative === "" || (relative !== ".." && !relative.startsWith(".." + path.sep) && !path.isAbsolute(relative));
+  };
+
+  Server.prototype.browseProjectFolders = function(folder) {
+    var code, drive, entries, entry, entry_path, err, i, internal_data, internal_files, j, len, names, parent, requested, resolved, root, stat;
+    if (!this.localFoldersEnabled()) {
+      return {
+        error: "Local project folders are not enabled on this server"
+      };
+    }
+    root = path.resolve(this.config.projects_root || path.parse(process.cwd()).root);
+    requested = folder || root;
+    if (typeof requested !== "string" || requested.length === 0 || requested.length > 1000) {
+      return {
+        error: "invalid path"
+      };
+    }
+    if (!path.isAbsolute(requested)) {
+      return {
+        error: "path must be absolute"
+      };
+    }
+    try {
+      root = fs.realpathSync(root);
+      resolved = fs.realpathSync(path.resolve(requested));
+    } catch (error) {
+      err = error;
+      return {
+        error: "folder does not exist or cannot be read"
+      };
+    }
+    if (this.config.projects_root && !this.pathIsWithin(root, resolved)) {
+      return {
+        error: "path must be inside " + root
+      };
+    }
+    try {
+      stat = fs.statSync(resolved);
+      if (!stat.isDirectory()) {
+        return {
+          error: "not a folder"
+        };
+      }
+      names = fs.readdirSync(resolved, {
+        withFileTypes: true
+      });
+    } catch (error) {
+      err = error;
+      return {
+        error: "folder cannot be read"
+      };
+    }
+    internal_files = path.resolve(this.app_data + "/files");
+    internal_data = path.resolve(this.app_data + "/data");
+    entries = [];
+    for (i = 0, len = names.length; i < len; i++) {
+      entry = names[i];
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (entry.name === ".git" || entry.name === "node_modules") {
+        continue;
+      }
+      entry_path = path.join(resolved, entry.name);
+      if (this.pathIsWithin(internal_files, entry_path) || this.pathIsWithin(internal_data, entry_path)) {
+        continue;
+      }
+      entries.push({
+        name: entry.name,
+        path: entry_path
+      });
+    }
+    if (process.platform === "win32" && !this.config.projects_root && resolved === path.parse(resolved).root) {
+      for (code = j = 65; j <= 90; code = ++j) {
+        drive = String.fromCharCode(code) + ":\\";
+        if (fs.existsSync(drive)) {
+          entries.push({
+            name: drive,
+            path: drive
+          });
+        }
+      }
+    }
+    entries.sort(function(a, b) {
+      return a.name.localeCompare(b.name);
+    });
+    parent = resolved === path.parse(resolved).root || (root === resolved && this.config.projects_root) ? null : path.dirname(resolved);
+    return {
+      root: root,
+      path: resolved,
+      parent: parent,
+      entries: entries
+    };
+  };
+
   Server.prototype.checkProjectFolder = function(folder) {
-    var i, internal, internal_data, internal_files, len, ref, resolved, root;
+    var err, i, internal, internal_data, internal_files, len, parent_err, ref, resolved, root;
     if (!this.localFoldersEnabled()) {
       return {
         error: "Local project folders are not enabled on this server"
@@ -177,9 +299,41 @@ this.Server = (function() {
       };
     }
     resolved = path.resolve(folder);
+    try {
+      resolved = fs.realpathSync(resolved);
+    } catch (error) {
+      err = error;
+      try {
+        resolved = path.join(fs.realpathSync(path.dirname(resolved)), path.basename(resolved));
+      } catch (error) {
+        parent_err = error;
+        resolved = path.resolve(folder);
+      }
+    }
+    if (fs.existsSync(resolved)) {
+      try {
+        if (!fs.statSync(resolved).isDirectory()) {
+          return {
+            error: "path is not a folder"
+          };
+        }
+        fs.accessSync(resolved, fs.constants.R_OK | fs.constants.W_OK);
+      } catch (error) {
+        err = error;
+        return {
+          error: "folder cannot be accessed"
+        };
+      }
+    }
     if (this.config.projects_root) {
       root = path.resolve(this.config.projects_root);
-      if (resolved !== root && !resolved.startsWith(root + path.sep)) {
+      try {
+        root = fs.realpathSync(root);
+      } catch (error) {
+        err = error;
+        root = path.resolve(this.config.projects_root);
+      }
+      if (!this.pathIsWithin(root, resolved)) {
         return {
           error: "path must be inside " + root
         };
@@ -190,7 +344,13 @@ this.Server = (function() {
     ref = [internal_files, internal_data];
     for (i = 0, len = ref.length; i < len; i++) {
       internal = ref[i];
-      if (resolved === internal || resolved.startsWith(internal + path.sep)) {
+      try {
+        internal = fs.realpathSync(internal);
+      } catch (error) {
+        err = error;
+        continue;
+      }
+      if (this.pathIsWithin(internal, resolved)) {
         return {
           error: "cannot use microStudio's internal storage folder"
         };

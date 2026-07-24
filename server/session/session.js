@@ -148,6 +148,11 @@ this.Session = (function() {
         return _this.unlinkProjectLocalFolder(msg);
       };
     })(this));
+    this.register("browse_local_folders", (function(_this) {
+      return function(msg) {
+        return _this.browseLocalFolders(msg);
+      };
+    })(this));
     this.register("git_status", (function(_this) {
       return function(msg) {
         return _this.gitStatus(msg);
@@ -378,6 +383,24 @@ this.Session = (function() {
         }
       };
     })(this));
+  };
+
+  Session.prototype.browseLocalFolders = function(data) {
+    var project, result;
+    if (this.user == null) {
+      return this.sendError("not connected", data.request_id);
+    }
+    project = this.requireOwnedProject(data);
+    if (project == null) {
+      return this.sendError("access denied", data.request_id);
+    }
+    result = this.server.browseProjectFolders(data.path);
+    if (result.error) {
+      return this.sendError(result.error, data.request_id);
+    }
+    result.name = "local_folder_browser";
+    result.request_id = data.request_id;
+    return this.send(result);
   };
 
   Session.prototype.gitStatus = function(data) {

@@ -55,6 +55,7 @@ class @Session
 
     @register "set_project_local_folder",(msg)=>@setProjectLocalFolder(msg)
     @register "unlink_project_local_folder",(msg)=>@unlinkProjectLocalFolder(msg)
+    @register "browse_local_folders",(msg)=>@browseLocalFolders(msg)
 
     @register "git_status",(msg)=>@gitStatus(msg)
     @register "git_init",(msg)=>@gitInit(msg)
@@ -192,6 +193,17 @@ class @Session
         @send
           name: "unlink_project_local_folder"
           request_id: data.request_id
+
+  browseLocalFolders:(data)->
+    return @sendError("not connected",data.request_id) if not @user?
+    project = @requireOwnedProject(data)
+    return @sendError("access denied",data.request_id) if not project?
+
+    result = @server.browseProjectFolders data.path
+    return @sendError(result.error,data.request_id) if result.error
+    result.name = "local_folder_browser"
+    result.request_id = data.request_id
+    @send result
 
   gitStatus:(data)->
     return @sendError("not connected",data.request_id) if not @user?

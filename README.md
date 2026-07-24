@@ -40,6 +40,8 @@ local port or constrain which folders may be linked to projects:
 
 `projects_root` is optional. When set, a linked project folder must be inside
 that directory. Project data otherwise lives locally under `data/` and `files/`.
+Set `"port": 0` to let the operating system choose a free port; the selected
+URL is printed when the server starts.
 
 ## Workflow
 

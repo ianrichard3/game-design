@@ -68,8 +68,18 @@ div.projectoptions#projectoptions
             span#project-local-folder-path
             div.button1#project-local-folder-unlink <i class="fa fa-unlink"></i> #{translator.get("Unlink")}
           div#project-local-folder-unlinked
-            input.input1#project-local-folder-input(type="text" placeholder=translator.get("Absolute path to a folder"))
+            div#project-local-folder-picker-row
+              input.input1#project-local-folder-input(type="text" placeholder=translator.get("Absolute path to a folder"))
+              div.button1#project-local-folder-browse <i class="fa fa-folder-open"></i> #{translator.get("Browse")}
             div.button1#project-local-folder-link <i class="fa fa-link"></i> #{translator.get("Link")}
+            div#project-local-folder-browser
+              div#project-local-folder-browser-toolbar
+                div#project-local-folder-browser-up.button1 <i class="fa fa-level-up-alt"></i> #{translator.get("Up")}
+                span#project-local-folder-browser-path
+              div#project-local-folder-browser-list
+              div#project-local-folder-browser-actions
+                div.button1#project-local-folder-browser-cancel #{translator.get("Cancel")}
+                div.button1#project-local-folder-browser-select <i class="fa fa-check"></i> #{translator.get("Select folder")}
           div.tip.error#project-local-folder-error
 
         div.projectoption

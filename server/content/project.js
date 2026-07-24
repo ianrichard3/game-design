@@ -353,7 +353,7 @@ this.Project = (function() {
   };
 
   Project.prototype.setLocalFolder = function(folder, callback) {
-    var check, dest, entries, exists, finish, hasOwnFiles, k;
+    var check, dest, entries, err, exists, finish, hasOwnFiles, k, src;
     if (this.folder_op_in_progress) {
       return callback("A folder link/unlink operation is already in progress");
     }
@@ -363,11 +363,19 @@ this.Project = (function() {
     }
     folder = check.resolved;
     exists = fs.existsSync(folder);
-    entries = exists ? fs.readdirSync(folder).filter((function(_this) {
-      return function(e) {
-        return e !== ".git" && e !== ".DS_Store";
-      };
-    })(this)) : [];
+    entries = [];
+    if (exists) {
+      try {
+        entries = fs.readdirSync(folder).filter((function(_this) {
+          return function(e) {
+            return e !== ".git" && e !== ".DS_Store";
+          };
+        })(this));
+      } catch (error) {
+        err = error;
+        return callback("folder cannot be read");
+      }
+    }
     hasOwnFiles = false;
     for (k in this.files) {
       hasOwnFiles = true;
@@ -401,14 +409,27 @@ this.Project = (function() {
     })(this);
     this.folder_op_in_progress = true;
     if (entries.length === 0) {
-      dest = new FolderStorage(folder);
+      try {
+        dest = new FolderStorage(folder);
+      } catch (error) {
+        err = error;
+        this.folder_op_in_progress = false;
+        return callback("folder cannot be created: " + err.message);
+      }
       return this.exportToFolder(dest, (function(_this) {
         return function() {
           return finish();
         };
       })(this));
     } else if (!hasOwnFiles) {
-      return this.importFromFolder(new FolderStorage(folder), (function(_this) {
+      try {
+        src = new FolderStorage(folder);
+      } catch (error) {
+        err = error;
+        this.folder_op_in_progress = false;
+        return callback("folder cannot be read: " + err.message);
+      }
+      return this.importFromFolder(src, (function(_this) {
         return function() {
           return finish();
         };

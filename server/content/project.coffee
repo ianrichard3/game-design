@@ -270,7 +270,12 @@ class @Project
     folder = check.resolved
 
     exists = fs.existsSync(folder)
-    entries = if exists then fs.readdirSync(folder).filter((e)=> e!=".git" and e!=".DS_Store") else []
+    entries = []
+    if exists
+      try
+        entries = fs.readdirSync(folder).filter((e)=> e!=".git" and e!=".DS_Store")
+      catch err
+        return callback("folder cannot be read")
     hasOwnFiles = false
     for k of @files
       hasOwnFiles = true
@@ -295,10 +300,19 @@ class @Project
     @folder_op_in_progress = true
 
     if entries.length==0
-      dest = new FolderStorage folder
+      try
+        dest = new FolderStorage folder
+      catch err
+        @folder_op_in_progress = false
+        return callback("folder cannot be created: #{err.message}")
       @exportToFolder dest,()=> finish()
     else if not hasOwnFiles
-      @importFromFolder (new FolderStorage folder),()=> finish()
+      try
+        src = new FolderStorage folder
+      catch err
+        @folder_op_in_progress = false
+        return callback("folder cannot be read: #{err.message}")
+      @importFromFolder src,()=> finish()
     else
       @folder_op_in_progress = false
       callback("Target folder must be empty, or the project must have no files yet")
