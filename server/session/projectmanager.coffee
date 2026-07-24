@@ -315,14 +315,11 @@ class @ProjectManager
 
         return
 
-    if not /^(ms|sprites|maps|sounds|music|doc|assets)\/[a-z0-9_]{1,40}(-[a-z0-9_]{1,40}){0,10}.(ms|png|json|wav|mp3|ogg|flac|md|glb|obj|jpg|ttf|txt|csv|wasm)$/.test(data.file)
+    if not /^(ms|sprites|maps|sounds|music|doc|assets)\/[a-z0-9_]{1,40}(-[a-z0-9_]{1,40}){0,10}.(ms|png|json|wav|mp3|ogg|flac|md|jpg|ttf|txt|csv|wasm)$/.test(data.file)
       console.info "wrong file name: #{data.file}"
       return
 
     version = @getFileVersion data.file
-    if version == 0 # new file
-      if not session.server.rate_limiter.accept("create_file_user",session.user.id)
-        return
 
     file = "#{@project.owner.id}/#{@project.id}/#{data.file}"
     storage = @project.getStorage()

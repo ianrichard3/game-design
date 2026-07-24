@@ -18,7 +18,6 @@ class @Options
     @selectInput "projectoption-aspect",(value)=>@aspectChanged(value)
     @selectInput "projectoption-type",(value)=>@typeChanged(value)
     @selectInput "projectoption-graphics",(value)=>@graphicsChanged(value)
-    @selectInput "projectoption-graphics-version",(value)=>@graphicsChanged(value)
     @selectInput "projectoption-language",(value)=>@languageChanged(value)
 
     advanced = document.getElementById("advanced-project-options-button")
@@ -69,6 +68,11 @@ class @Options
     @app.appui.setAction "project-local-folder-unlink",()=>
       @unlinkLocalFolder()
 
+    @app.appui.setAction "project-export-html",()=>
+      project = @app.project
+      path = "/#{project.owner.nick}/#{project.slug}/#{project.code}/publish/html/?v=#{Date.now()}"
+      window.location = path
+
     document.getElementById("project-local-folder-input").addEventListener "keyup",(event)=>
       @linkLocalFolder() if event.keyCode == 13
 
@@ -90,12 +94,12 @@ class @Options
     document.getElementById("projectoption-name").value = @app.project.title
     @project_slug_validator.set @app.project.slug
 
-    document.getElementById("projectoption-slugprefix").innerText = location.origin.replace(".dev",".io")+"/#{@app.project.owner.nick}/"
+    document.getElementById("projectoption-slugprefix").innerText = location.origin+"/#{@app.project.owner.nick}/"
     document.getElementById("projectoption-orientation").value = @app.project.orientation
     document.getElementById("projectoption-aspect").value = @app.project.aspect
     document.getElementById("projectoption-type").value = @app.project.type or "app"
-    document.getElementById("projectoption-graphics").value = (@app.project.graphics or "M1").split("_")[0]
-    document.getElementById("projectoption-language").value = @app.project.language or "microscript_v1_i"
+    document.getElementById("projectoption-graphics").value = "M1"
+    document.getElementById("projectoption-language").value = "microscript_v2"
 
     @library_tip.style.display = if @app.project.type == "library" then "block" else "none"
 
@@ -104,35 +108,6 @@ class @Options
     @updateSecretCodeLine()
     @updateLocalFolderUI()
     @app.project.addListener @
-    @updateGraphicsVersion()
-
-  updateGraphicsVersion:()->
-    e = document.getElementById("projectoption-graphics-version")
-    full_id = @app.project.graphics or "M1"
-    id = full_id.split("_")[0].toLowerCase()
-    graphics = ms_graphics_options[id]
-    if graphics
-      if graphics.versions
-        e.innerHTML = ""
-        for key,v of graphics.versions
-          option = document.createElement("option")
-          option.value = key.toUpperCase()
-          option.innerText = v.name
-          e.appendChild(option)
-
-        if graphics.versions[full_id.toLowerCase()]
-          e.value = full_id
-        else
-          for key,v of graphics.versions
-            if v.original
-              e.value = key.toUpperCase()
-
-        e.style.display = "inline-block"
-      else
-        e.style.display = "none"
-    else
-      e.style.display = "none"
-
   updateOptionalLibs:()->
     list = document.querySelectorAll("#project-option-libs input")
     for input in list
@@ -169,7 +144,7 @@ class @Options
 
   updateSecretCodeLine:()->
     @project_code_validator.set @app.project.code
-    document.getElementById("projectoption-codeprefix").innerText = location.origin.replace(".dev",".io")+"/#{@app.project.owner.nick}/#{@app.project.slug}/"
+    document.getElementById("projectoption-codeprefix").innerText = location.origin+"/#{@app.project.owner.nick}/#{@app.project.slug}/"
 
   updateLocalFolderUI:()->
     linked = document.getElementById("project-local-folder-linked")
@@ -287,23 +262,13 @@ class @Options
     @app.lib_manager.resetLibs()
 
   graphicsChanged:(value)->
-    id = value.split("_")[0]
-    if id == value
-      graphics = ms_graphics_options[id.toLowerCase()]
-      if graphics and graphics.versions
-        for key,v of graphics.versions
-          if v.default
-            value = key.toUpperCase()
-            break
-
-    @app.project.setGraphics(value)
+    @app.project.setGraphics("M1")
     @app.debug.updateDebuggerVisibility()
-    @updateGraphicsVersion()
     @app.client.sendRequest {
       name: "set_project_option"
       project: @app.project.id
       option: "graphics"
-      value: value
+      value: "M1"
     },(msg)=>
 
   fixLib:(lib)->
@@ -330,29 +295,7 @@ class @Options
     @updateOptionalLibs()
 
   languageChanged:(value)->
-    if value != @app.project.language
-      if @app.project.source_list.length == 1 and @app.project.source_list[0].content.split("\n").length<20
-        if not @app.project.language.startsWith("microscript") or not value.startsWith("microscript")
-          ConfirmDialog.confirm @app.translator.get("Your current code will be overwritten. Do you wish to proceed?"),
-            @app.translator.get("OK"),
-            @app.translator.get("Cancel"),
-            (()=>
-              @app.project.setLanguage(value)
-              @app.editor.updateLanguage()
-              @app.debug.updateDebuggerVisibility()
-              if DEFAULT_CODE[value]?
-                @app.editor.setCode DEFAULT_CODE[value]
-              else
-                @app.editor.setCode DEFAULT_CODE["microscript"]
-              @app.editor.editorContentsChanged()
-              @setLanguage(value)
-            ),
-            (()=>
-              document.getElementById("projectoption-language").value = @app.project.language
-            )
-          return
-
-      @setLanguage(value)
+    @setLanguage("microscript_v2")
 
   setLanguage:(value)->
     @app.project.setLanguage(value)
@@ -375,45 +318,3 @@ class @Options
         option: "type"
         value: type
       },(msg)=>
-
-DEFAULT_CODE =
-  python: """
-def init():
-  pass
-
-def update():
-  pass
-
-def draw():
-  pass
-  """
-  javascript: """
-init = function() {
-}
-
-update = function() {
-}
-
-draw = function() {
-}
-  """
-  lua: """
-init = function()
-end
-
-update = function()
-end
-
-draw = function()
-end
-  """
-  microscript: """
-init = function()
-end
-
-update = function()
-end
-
-draw = function()
-end
-  """

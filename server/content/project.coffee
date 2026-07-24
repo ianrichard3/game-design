@@ -1,4 +1,3 @@
-Comments = require __dirname+"/comments.js"
 FolderStorage = require __dirname+"/../filestorage/folderstorage.js"
 JobQueue = require __dirname+"/../app/jobqueue.js"
 
@@ -38,18 +37,19 @@ class @Project
       @first_published = data.first_published or 0
       @orientation = data.orientation or "any"
       @aspect = data.aspect or "free"
-      @graphics = data.graphics or "M1"
-      @language = data.language or "microscript_v1_i"
+      @graphics = "M1"
+      @language = "microscript_v2"
+      if data.graphics != @graphics or data.language != @language
+        data.graphics = @graphics
+        data.language = @language
+        @record.set data
       @platforms = data.platforms or ["computer","phone","tablet"]
       @controls = data.controls or ["touch","mouse"]
       @libs = data.libs or []
-      @tabs = data.tabs
-      @plugins = data.plugins
       @libraries = data.libraries
       @properties = data.properties or {}
       @type = if data.type in ["app","library"] then data.type else "app"
       @users = []
-      @comments = new Comments @,data.comments
       if not @deleted
         @owner = @content.users[data.owner]
         if @owner?
@@ -128,7 +128,14 @@ class @Project
     @set "aspect",aspect
 
   setGraphics:(graphics)->
+    return false if graphics != "M1"
     @set "graphics",graphics
+    true
+
+  setLanguage:(language)->
+    return false if language != "microscript_v2"
+    @set "language",language
+    true
 
   setFlag:(flag,value)->
     if value
@@ -225,8 +232,6 @@ class @Project
     language: @language
     graphics: @graphics
     libs: @libs
-    tabs: @tabs
-    plugins: @plugins
     libraries: @libraries
     date_created: @date_created
     description: @description
@@ -234,13 +239,22 @@ class @Project
   # Debounced: option changes can fire once per keystroke (e.g. editing the
   # title), and unordered concurrent writes to the same project.json would
   # otherwise race ; collapsing rapid-fire calls into one write avoids that.
-  writeLocalMetadata:()->
-    return if not @local_folder
+  writeLocalMetadata:(callback)->
+    return callback?(new Error("Project is not linked to a local folder")) if not @local_folder
+    @local_metadata_callbacks = [] if not @local_metadata_callbacks?
+    @local_metadata_callbacks.push callback if callback?
     clearTimeout @local_metadata_timer if @local_metadata_timer?
     @local_metadata_timer = setTimeout (()=>
       @local_metadata_timer = null
-      return if not @local_folder
-      fs.writeFile "#{@local_folder}/project.json",JSON.stringify(@localMetadata(),null,2),()=>
+      if not @local_folder
+        callbacks = @local_metadata_callbacks
+        @local_metadata_callbacks = []
+        callback?(new Error("Project is not linked to a local folder")) for callback in callbacks
+        return
+      fs.writeFile "#{@local_folder}/project.json",JSON.stringify(@localMetadata(),null,2),(err)=>
+        callbacks = @local_metadata_callbacks
+        @local_metadata_callbacks = []
+        callback?(err) for callback in callbacks
     ),500
 
   # Links this project to a real folder on disk, which becomes its storage from
@@ -266,18 +280,23 @@ class @Project
       @manager?.stopFolderWatcher()
       @local_folder = folder
       @folder_storage = null
-      @set "local_folder",folder
-      @manager?.startFolderWatcher()
-      @folder_op_in_progress = false
-      callback(null)
+      @set "local_folder",folder,false
+      @writeLocalMetadata (err)=>
+        @folder_op_in_progress = false
+        if err
+          @local_folder = null
+          @folder_storage = null
+          @set "local_folder",null,false
+          callback("Could not write project metadata: #{err.message}")
+        else
+          @manager?.startFolderWatcher()
+          callback(null)
 
     @folder_op_in_progress = true
 
     if entries.length==0
       dest = new FolderStorage folder
-      @exportToFolder dest,()=>
-        @writeLocalMetadata()
-        finish()
+      @exportToFolder dest,()=> finish()
     else if not hasOwnFiles
       @importFromFolder (new FolderStorage folder),()=> finish()
     else

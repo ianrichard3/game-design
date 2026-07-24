@@ -38,7 +38,7 @@ this.AppState = (function() {
           }[p] || p;
         })(history.state.name));
       } else if (history.state.name === "home") {
-        return this.app.appui.setMainSection("home");
+        return this.app.appui.setMainSection("projects");
       } else if (history.state.name.startsWith("project.") && (s[1] != null) && (s[2] != null)) {
         project = s[1];
         if ((this.app.project == null) || this.app.project.slug !== project) {
@@ -63,18 +63,6 @@ this.AppState = (function() {
         } else {
           return this.app.appui.setMainSection("help");
         }
-      } else if (history.state.name.startsWith("user.") && (s[1] != null)) {
-        switch (s[1]) {
-          case "settings":
-            this.app.appui.setMainSection("usersettings");
-            return this.app.user_settings.setSection("settings");
-          case "profile":
-            this.app.appui.setMainSection("usersettings");
-            return this.app.user_settings.setSection("profile");
-          case "progress":
-            this.app.appui.setMainSection("usersettings");
-            return this.app.user_settings.setSection("progress");
-        }
       }
     }
   };
@@ -85,74 +73,41 @@ this.AppState = (function() {
   };
 
   AppState.prototype.initState = function() {
-    var i, len, p, path, project, ref, s, tab;
-    if (location.pathname.startsWith("/login/")) {
-      path = this.app.translator.lang !== "en" ? "/" + this.app.translator.lang + "/" : "/";
-      history.replaceState({
-        name: "home"
-      }, "", path);
-      this.app.appui.setMainSection("home");
-      this.app.appui.showLoginPanel();
-    } else {
-      ref = ["about", "documentation"];
-      for (i = 0, len = ref.length; i < len; i++) {
-        p = ref[i];
-        if (location.pathname.startsWith("/" + p + "/") || location.pathname === ("/" + p)) {
-          history.replaceState({
-            name: p
-          }, "", location.pathname);
-          if (p === "documentation") {
-            path = location.pathname.split("/");
-            if (path[2]) {
-              this.app.documentation.setSection(path[2], null, null, false);
-            }
-          }
-          this.app.appui.setMainSection(((function(_this) {
-            return function(p) {
-              return {
-                "documentation": "help"
-              }[p] || p;
-            };
-          })(this))(p));
-          this.stateInitialized();
-          return;
-        }
-      }
-      if (this.app.user != null) {
-        s = location.pathname.split("/");
-        if (location.pathname.startsWith("/projects/") && s[2] && s[3]) {
-          project = s[2];
-          tab = s[3];
-          history.replaceState({
-            name: "project." + s[2] + "." + s[3]
-          }, "", location.pathname);
-        } else if (location.pathname.startsWith("/user/") && s[2]) {
-          switch (s[2]) {
-            case "settings":
-              this.app.appui.setMainSection("usersettings");
-              this.app.user_settings.setSection("settings");
-              break;
-            case "profile":
-              this.app.appui.setMainSection("usersettings");
-              this.app.user_settings.setSection("profile");
-              break;
-            case "progress":
-              this.app.appui.setMainSection("usersettings");
-              this.app.user_settings.setSection("progress");
-          }
-        } else {
-          this.app.appui.setMainSection("projects");
-          history.replaceState({
-            name: "projects"
-          }, "", "/projects/");
-        }
-      } else {
-        path = this.app.translator.lang !== "en" ? "/" + this.app.translator.lang + "/" : "/";
+    var i, len, p, path, ref, s;
+    ref = ["about", "documentation"];
+    for (i = 0, len = ref.length; i < len; i++) {
+      p = ref[i];
+      if (location.pathname.startsWith("/" + p + "/") || location.pathname === ("/" + p)) {
         history.replaceState({
-          name: "home"
-        }, "", path);
-        this.app.appui.setMainSection("home");
+          name: p
+        }, "", location.pathname);
+        if (p === "documentation") {
+          path = location.pathname.split("/");
+          if (path[2]) {
+            this.app.documentation.setSection(path[2], null, null, false);
+          }
+        }
+        this.app.appui.setMainSection(((function(_this) {
+          return function(p) {
+            return {
+              "documentation": "help"
+            }[p] || p;
+          };
+        })(this))(p));
+        this.stateInitialized();
+        return;
       }
+    }
+    s = location.pathname.split("/");
+    if (location.pathname.startsWith("/projects/") && s[2] && s[3]) {
+      history.replaceState({
+        name: "project." + s[2] + "." + s[3]
+      }, "", location.pathname);
+    } else {
+      this.app.appui.setMainSection("projects");
+      history.replaceState({
+        name: "projects"
+      }, "", "/projects/");
     }
     return this.stateInitialized();
   };

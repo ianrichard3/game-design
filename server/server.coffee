@@ -1,6 +1,5 @@
 compression = require "compression"
 express = require "express"
-cookieParser = require('cookie-parser')
 fs = require "fs"
 path = require "path"
 DB = require __dirname+"/db/db.js"
@@ -8,10 +7,8 @@ FileStorage = require __dirname+"/filestorage/filestorage.js"
 Content = require __dirname+"/content/content.js"
 WebApp = require __dirname+"/webapp.js"
 Session = require __dirname+"/session/session.js"
-RateLimiter = require __dirname+"/ratelimiter.js"
 WebSocket = require "ws"
 process = require "process"
-morgan = require "morgan"
 
 class @Server
   constructor:(@config={},@callback)->
@@ -19,76 +16,16 @@ class @Server
 
     @app_data = @config.app_data or ".."
 
-    @mailer =    # STUB
-      sendMail:(recipient,subject,text)->
-        console.info "send mail to:#{recipient} subject:#{subject} text:#{text}"
-
-    @stats =    # STUB
-      set:(name,value)->
-      max:(name,value)->
-      unique:(name,id)->
-      inc:(name)->
-      stop:()->
-
-    @last_backup_time = 0
-
-    @PROXY = @config.proxy or false
-
-    if @config.realm == "production" and @PROXY
-      @PORT = @config.port or 8089
-      @PROD = true
-    else if @config.realm == "production"
-      @PORT = 443
-      @PROD = true
-    else if @config.standalone
-      @PORT = @config.port or 0
-    else
-      @PORT = @config.port or 8089
-      @PROD = false
-
-    @loadPlugins ()=>
-      @create()
+    @PORT = @config.port or 8089
+    @create()
 
   create:()->
     app = express()
-    if @PROXY
-      app.set('trust proxy', true)
-
-    if fs.existsSync( path.join(__dirname, "../logs") )
-      accessLogStream = fs.createWriteStream(path.join(__dirname, "../logs/access.log"), { flags: 'a' })
-
-      # setup the logger
-      app.use(morgan('combined', { stream: accessLogStream }))
-
     static_files = "../static"
 
     @date_started = Date.now()
 
-    @rate_limiter = new RateLimiter @
-    app.use (req,res,next)=>
-      if @rate_limiter.accept("request","general") and @rate_limiter.accept("request_ip",req.ip)
-        next()
-      else
-        res.status(500).send ""
-      @stats.inc("http_requests")
-      @stats.unique("ip_addresses",req.ip)
-      referrer = req.get("Referrer")
-      if referrer? and not referrer.startsWith("http://localhost") and not referrer.startsWith("https://microstudio.io") and not referrer.startsWith("https://microstudio.dev")
-        if referrer.includes("=")
-          referrer = referrer.substring(0,referrer.indexOf("="))
-
-        if referrer.length > 120
-          referrer = referrer.substring(0,120)
-        @stats.unique("referrer|"+referrer,req.ip)
-
     app.use(compression())
-
-    app.use(cookieParser())
-
-    for plugin in @plugins
-      if plugin.getStaticFolder?
-        folder = plugin.getStaticFolder()
-        app.use(express.static(folder))
 
     app.use(express.static(static_files))
     app.use("/microstudio.wiki",express.static("../microstudio.wiki",{dotfiles:"ignore"}))
@@ -101,62 +38,29 @@ class @Server
     app.use("/lib/dompurify/purify.js",express.static("node_modules/dompurify/dist/purify.min.js"))
     app.use("/lib/jquery/jquery.js",express.static("node_modules/jquery/dist/jquery.min.js"))
     app.use("/lib/jquery-ui",express.static("node_modules/jquery-ui-dist"))
-    if @config.brython_path
-      app.use("/lib/brython",express.static(@config.brython_path))
-    else
-      app.use("/lib/brython",express.static("node_modules/brython"))
-    app.use("/lib/fengari",express.static("node_modules/fengari-web/dist"))
-    app.use("/lib/qrcode",express.static("node_modules/qrcode/build"))
     app.use("/lib/wavefile",express.static("node_modules/wavefile/dist"))
     app.use("/lib/lamejs/lame.min.js",express.static("node_modules/lamejs/lame.min.js"))
 
     @db = new DB "#{@app_data}/data",(db)=>
-      for plugin in @plugins
-        if plugin.dbLoaded?
-          plugin.dbLoaded(db)
-
-      if @PROD and @PROXY
-        @httpserver = require("http").createServer(app).listen(@PORT,"localhost")
-        @use_cache = true
+      @use_cache = false
+      @httpserver = require("http").createServer(app).listen @PORT,"127.0.0.1",()=>
+        @PORT = @httpserver.address().port
         @start(app,db)
-      else if @PROD
-        require('greenlock-express').init
-          packageRoot: __dirname
-          configDir: "./greenlock.d"
-          maintainerEmail: "contact@microstudio.dev"
-          cluster: false
-        .ready (glx)=>
-          @httpserver = glx.httpsServer()
-          @use_cache = true
-          glx.serveApp app
-          @start(app,db)
-      else if @config.standalone
-        @use_cache = false
-        @httpserver = require("http").createServer(app).listen @PORT,"127.0.0.1",()=>
-          @PORT = @httpserver.address().port
-          @start(app,db)
-          console.info "standalone running on port #{@PORT}"
-          @callback() if @callback?
-      else
-        @httpserver = require("http").createServer(app).listen(@PORT)
-        @use_cache = false
-        @start(app,db)
+        console.info "local server running on port #{@PORT}"
+        @callback() if @callback?
 
   start:(app,db)->
     @active_users = 0
 
     @io = new WebSocket.Server
       server: @httpserver
-      maxPayload: if @config.standalone then 1000000000 else 40000000
+      maxPayload: 1000000000
 
     @sessions = []
 
     @io.on "connection",(socket,request)=>
       socket.request = request
-      if @PROXY
-        socket.remoteAddress = request.headers['x-forwarded-for'] or request.connection.remoteAddress
-      else
-        socket.remoteAddress = request.connection.remoteAddress
+      socket.remoteAddress = request.connection.remoteAddress
       @sessions.push new Session @,socket
 
     console.info "MAX PAYLOAD = "+@io.options.maxPayload
@@ -165,9 +69,6 @@ class @Server
 
     @content = new Content @,db,new FileStorage "#{@app_data}/files"
     @webapp = new WebApp @,app
-
-    for l in @webapp.languages
-      @content.translator.createLanguage l
 
     process.on 'SIGINT', ()=>
       console.log "caught INT signal"
@@ -195,8 +96,6 @@ class @Server
     if @exited
       process.exit(0)
     @httpserver.close()
-    @stats.stop()
-    @rate_limiter.close()
     @io.close()
     @db.close()
     @content.close()
@@ -216,13 +115,9 @@ class @Server
     if index>=0
       @sessions.splice index,1
 
-  localFoldersEnabled:()->
-    @config.standalone == true or @config.local_folders == true
+  localFoldersEnabled:()-> true
 
-  # Validates a client-supplied folder path before it's allowed to become a
-  # project's live storage. Requires the feature to be explicitly enabled
-  # (standalone or config.local_folders), and if config.projects_root is set,
-  # confines linked folders to that base directory.
+  # Validates a client-supplied folder path before it becomes a project's live storage.
   checkProjectFolder:(folder)->
     return {error:"Local project folders are not enabled on this server"} if not @localFoldersEnabled()
     return {error:"invalid path"} if typeof folder != "string" or folder.length==0 or folder.length>1000
@@ -240,34 +135,5 @@ class @Server
       return {error:"cannot use microStudio's internal storage folder"} if resolved==internal or resolved.startsWith(internal+path.sep)
 
     {resolved: resolved}
-
-  loadPlugins:(callback)->
-    @plugins = []
-
-    fs.readdir "../plugins",(err,files)=>
-      files = [] if not files?
-
-      funk = ()=>
-        if files.length==0
-          callback()
-        else
-          f = files.splice(0,1)[0]
-          @loadPlugin "../plugins/#{f}",funk
-
-      funk()
-
-  loadPlugin:(folder,callback)->
-    if fs.existsSync "#{folder}/index.js"
-      try
-        Plugin = require "#{folder}/index.js"
-        p = new Plugin(@)
-        @plugins.push p
-        console.info "loaded plugin #{folder}"
-      catch err
-        console.error err
-      callback()
-    else
-      console.info "plugin #{folder} has no index.js"
-      callback()
 
 module.exports = @Server

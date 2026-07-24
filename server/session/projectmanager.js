@@ -472,16 +472,11 @@ this.ProjectManager = (function() {
         return;
       }
     }
-    if (!/^(ms|sprites|maps|sounds|music|doc|assets)\/[a-z0-9_]{1,40}(-[a-z0-9_]{1,40}){0,10}.(ms|png|json|wav|mp3|ogg|flac|md|glb|obj|jpg|ttf|txt|csv|wasm)$/.test(data.file)) {
+    if (!/^(ms|sprites|maps|sounds|music|doc|assets)\/[a-z0-9_]{1,40}(-[a-z0-9_]{1,40}){0,10}.(ms|png|json|wav|mp3|ogg|flac|md|jpg|ttf|txt|csv|wasm)$/.test(data.file)) {
       console.info("wrong file name: " + data.file);
       return;
     }
     version = this.getFileVersion(data.file);
-    if (version === 0) {
-      if (!session.server.rate_limiter.accept("create_file_user", session.user.id)) {
-        return;
-      }
-    }
     file = this.project.owner.id + "/" + this.project.id + "/" + data.file;
     storage = this.project.getStorage();
     if (data.content != null) {

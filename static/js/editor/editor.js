@@ -8,7 +8,7 @@ this.Editor = (function(superClass) {
   function Editor(app) {
     var f;
     Editor.__super__.constructor.call(this, app);
-    this.language = this.app.languages.microscript;
+    this.language = this.app.languages.microscript2;
     this.folder = "ms";
     this.item = "source";
     this.main_splitpanel = "code-editor";
@@ -201,42 +201,13 @@ this.Editor = (function(superClass) {
 
   Editor.prototype.updateLanguage = function() {
     if (this.app.project) {
-      switch (this.app.project.language) {
-        case "python":
-          this.language = this.app.languages.python;
-          break;
-        case "javascript":
-          this.language = this.app.languages.javascript;
-          break;
-        case "lua":
-          this.language = this.app.languages.lua;
-          break;
-        case "microscript_v2":
-          this.language = this.app.languages.microscript2;
-          break;
-        default:
-          this.language = this.app.languages.microscript;
-      }
+      this.language = this.app.languages.microscript2;
     }
     this.editor.getSession().setMode(this.language.ace_mode);
     return this.updateSourceLanguage();
   };
 
-  Editor.prototype.checkEmbeddedJavaScript = function(src) {
-    if (this.app.project.language === "microscript_v2") {
-      if (/^\s*\/\/\s*javascript\s*\n/.test(src)) {
-        if (this.language !== this.app.languages.javascript) {
-          this.language = this.app.languages.javascript;
-          return this.editor.getSession().setMode(this.language.ace_mode);
-        }
-      } else {
-        if (this.language !== this.app.languages.microscript2) {
-          this.language = this.app.languages.microscript2;
-          return this.editor.getSession().setMode(this.language.ace_mode);
-        }
-      }
-    }
-  };
+  Editor.prototype.checkEmbeddedJavaScript = function(src) {};
 
   Editor.prototype.editorContentsChanged = function() {
     var source, src;
@@ -925,10 +896,10 @@ this.Editor = (function(superClass) {
   };
 
   Editor.prototype.updateRunLink = function() {
-    var element, iframe, qrcode, url;
+    var element, iframe, url;
     element = document.getElementById("run-link");
     if (this.app.project != null) {
-      url = location.origin.replace(".dev", ".io") + "/";
+      url = location.origin + "/";
       url += this.app.project.owner.nick + "/";
       url += this.app.project.slug + "/";
       if (!this.app.project["public"]) {
@@ -939,21 +910,8 @@ this.Editor = (function(superClass) {
       element.title = url;
       iframe = document.querySelector("#device iframe");
       if (iframe != null) {
-        iframe.src = url;
+        return iframe.src = url;
       }
-      return qrcode = QRCode.toDataURL(url, {
-        margin: 0
-      }, (function(_this) {
-        return function(err, url) {
-          var img;
-          if ((err == null) && (url != null)) {
-            img = new Image;
-            img.src = url;
-            document.getElementById("qrcode-button").innerHTML = "";
-            return document.getElementById("qrcode-button").appendChild(img);
-          }
-        };
-      })(this));
     }
   };
 

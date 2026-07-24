@@ -72,6 +72,10 @@ div.projectoptions#projectoptions
             div.button1#project-local-folder-link <i class="fa fa-link"></i> #{translator.get("Link")}
           div.tip.error#project-local-folder-error
 
+        div.projectoption
+          h3 #{translator.get("Export")}
+          div.button1#project-export-html <i class="fa fa-download"></i> #{translator.get("Export to HTML5")}
+
         div#advanced-project-options-button
           i.fa
           span #{translator.get("Show advanced options")}
@@ -100,14 +104,6 @@ div.projectoptions#projectoptions
             h3 #{translator.get("Graphics library")}
             select#projectoption-graphics
               option(value="M1") #{translator.get("basic graphics API")}
-              option(value="PIXI") #{translator.get("Pixi.js ")}
-              option(value="BABYLON") #{translator.get("Babylon.js")}
-              option(value="M2D") #{translator.get("micro 2D - Experimental - Built on Pixi.js")}
-              option(value="M3D") #{translator.get("micro 3D - Experimental - Built on Babylon.js")}
-
-            select.marginleft10#projectoption-graphics-version
-
-
           div.projectoption#project-option-libs
             h3 #{translator.get("Additional tools and libraries")}
             each val,key in optional_libs

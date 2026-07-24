@@ -1,6 +1,4 @@
-var AUX_FOLDERS, CONTENT_FOLDERS, Comments, FolderStorage, JobQueue, fs, isTextFile;
-
-Comments = require(__dirname + "/comments.js");
+var AUX_FOLDERS, CONTENT_FOLDERS, FolderStorage, JobQueue, fs, isTextFile;
 
 FolderStorage = require(__dirname + "/../filestorage/folderstorage.js");
 
@@ -51,18 +49,20 @@ this.Project = (function() {
       this.first_published = data.first_published || 0;
       this.orientation = data.orientation || "any";
       this.aspect = data.aspect || "free";
-      this.graphics = data.graphics || "M1";
-      this.language = data.language || "microscript_v1_i";
+      this.graphics = "M1";
+      this.language = "microscript_v2";
+      if (data.graphics !== this.graphics || data.language !== this.language) {
+        data.graphics = this.graphics;
+        data.language = this.language;
+        this.record.set(data);
+      }
       this.platforms = data.platforms || ["computer", "phone", "tablet"];
       this.controls = data.controls || ["touch", "mouse"];
       this.libs = data.libs || [];
-      this.tabs = data.tabs;
-      this.plugins = data.plugins;
       this.libraries = data.libraries;
       this.properties = data.properties || {};
       this.type = (ref = data.type) === "app" || ref === "library" ? data.type : "app";
       this.users = [];
-      this.comments = new Comments(this, data.comments);
       if (!this.deleted) {
         this.owner = this.content.users[data.owner];
         if (this.owner != null) {
@@ -173,7 +173,19 @@ this.Project = (function() {
   };
 
   Project.prototype.setGraphics = function(graphics) {
-    return this.set("graphics", graphics);
+    if (graphics !== "M1") {
+      return false;
+    }
+    this.set("graphics", graphics);
+    return true;
+  };
+
+  Project.prototype.setLanguage = function(language) {
+    if (language !== "microscript_v2") {
+      return false;
+    }
+    this.set("language", language);
+    return true;
   };
 
   Project.prototype.setFlag = function(flag, value) {
@@ -291,28 +303,51 @@ this.Project = (function() {
       language: this.language,
       graphics: this.graphics,
       libs: this.libs,
-      tabs: this.tabs,
-      plugins: this.plugins,
       libraries: this.libraries,
       date_created: this.date_created,
       description: this.description
     };
   };
 
-  Project.prototype.writeLocalMetadata = function() {
+  Project.prototype.writeLocalMetadata = function(callback) {
     if (!this.local_folder) {
-      return;
+      return typeof callback === "function" ? callback(new Error("Project is not linked to a local folder")) : void 0;
+    }
+    if (this.local_metadata_callbacks == null) {
+      this.local_metadata_callbacks = [];
+    }
+    if (callback != null) {
+      this.local_metadata_callbacks.push(callback);
     }
     if (this.local_metadata_timer != null) {
       clearTimeout(this.local_metadata_timer);
     }
     return this.local_metadata_timer = setTimeout(((function(_this) {
       return function() {
+        var callbacks, j, len;
         _this.local_metadata_timer = null;
         if (!_this.local_folder) {
+          callbacks = _this.local_metadata_callbacks;
+          _this.local_metadata_callbacks = [];
+          for (j = 0, len = callbacks.length; j < len; j++) {
+            callback = callbacks[j];
+            if (typeof callback === "function") {
+              callback(new Error("Project is not linked to a local folder"));
+            }
+          }
           return;
         }
-        return fs.writeFile(_this.local_folder + "/project.json", JSON.stringify(_this.localMetadata(), null, 2), function() {});
+        return fs.writeFile(_this.local_folder + "/project.json", JSON.stringify(_this.localMetadata(), null, 2), function(err) {
+          var l, len1, results;
+          callbacks = _this.local_metadata_callbacks;
+          _this.local_metadata_callbacks = [];
+          results = [];
+          for (l = 0, len1 = callbacks.length; l < len1; l++) {
+            callback = callbacks[l];
+            results.push(typeof callback === "function" ? callback(err) : void 0);
+          }
+          return results;
+        });
       };
     })(this)), 500);
   };
@@ -340,18 +375,28 @@ this.Project = (function() {
     }
     finish = (function(_this) {
       return function() {
-        var ref, ref1;
+        var ref;
         if ((ref = _this.manager) != null) {
           ref.stopFolderWatcher();
         }
         _this.local_folder = folder;
         _this.folder_storage = null;
-        _this.set("local_folder", folder);
-        if ((ref1 = _this.manager) != null) {
-          ref1.startFolderWatcher();
-        }
-        _this.folder_op_in_progress = false;
-        return callback(null);
+        _this.set("local_folder", folder, false);
+        return _this.writeLocalMetadata(function(err) {
+          var ref1;
+          _this.folder_op_in_progress = false;
+          if (err) {
+            _this.local_folder = null;
+            _this.folder_storage = null;
+            _this.set("local_folder", null, false);
+            return callback("Could not write project metadata: " + err.message);
+          } else {
+            if ((ref1 = _this.manager) != null) {
+              ref1.startFolderWatcher();
+            }
+            return callback(null);
+          }
+        });
       };
     })(this);
     this.folder_op_in_progress = true;
@@ -359,7 +404,6 @@ this.Project = (function() {
       dest = new FolderStorage(folder);
       return this.exportToFolder(dest, (function(_this) {
         return function() {
-          _this.writeLocalMetadata();
           return finish();
         };
       })(this));

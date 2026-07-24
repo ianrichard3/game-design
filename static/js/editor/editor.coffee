@@ -2,7 +2,7 @@ class @Editor extends Manager
   constructor:(app)->
     super(app)
     
-    @language = @app.languages.microscript
+    @language = @app.languages.microscript2
 
     @folder = "ms"
     @item = "source"
@@ -152,27 +152,13 @@ class @Editor extends Manager
 
   updateLanguage:()->
     if @app.project
-      switch @app.project.language
-        when "python" then @language = @app.languages.python
-        when "javascript" then @language = @app.languages.javascript
-        when "lua" then @language = @app.languages.lua
-        when "microscript_v2" then @language = @app.languages.microscript2
-        else
-          @language = @app.languages.microscript
+      @language = @app.languages.microscript2
 
     @editor.getSession().setMode(@language.ace_mode)
     @updateSourceLanguage()
 
   checkEmbeddedJavaScript:(src)->
-    if @app.project.language == "microscript_v2"
-      if /^\s*\/\/\s*javascript\s*\n/.test(src)
-        if @language != @app.languages.javascript
-          @language = @app.languages.javascript
-          @editor.getSession().setMode(@language.ace_mode)
-      else
-        if @language != @app.languages.microscript2
-          @language = @app.languages.microscript2
-          @editor.getSession().setMode(@language.ace_mode)
+    return
 
   editorContentsChanged:()->
     return if @ignore_changes
@@ -685,7 +671,7 @@ class @Editor extends Manager
   updateRunLink:()->
     element = document.getElementById("run-link")
     if @app.project?
-      url = location.origin.replace(".dev",".io")+"/"
+      url = location.origin+"/"
       url += @app.project.owner.nick+"/"
       url += @app.project.slug+"/"
       if not @app.project.public
@@ -697,14 +683,6 @@ class @Editor extends Manager
 
       iframe = document.querySelector("#device iframe")
       if iframe? then iframe.src = url
-
-      qrcode = QRCode.toDataURL url,{margin:0},(err,url)=>
-        if not err? and url?
-          img = new Image
-          img.src = url
-          document.getElementById("qrcode-button").innerHTML = ""
-          document.getElementById("qrcode-button").appendChild img
-
 
   toggleLibManager:(view = @editor_view.style.display != "none")->
     if view

@@ -101,16 +101,7 @@
   vertical-align: middle;
 }
 
-#qrcode-button {
-  margin-left: 20px ;
-  border-radius: 5px ;
-  background: hsl(200,50%,40%) ;
-  position: relative ;
-  top: -2px ;
-  padding: 5px ;
-}
-
-#qrcode-button:hover, #run-link:hover {
+#run-link:hover {
   background: hsl(200,50%,50%) ;
 }
 

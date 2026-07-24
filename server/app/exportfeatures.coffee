@@ -1,5 +1,5 @@
 fs = require "fs"
-Jimp = require "jimp"
+{Jimp,JimpMime,ResizeStrategy} = require "jimp"
 JSZip = require "jszip"
 pug = require "pug"
 JobQueue = require __dirname+"/jobqueue.js"
@@ -127,8 +127,6 @@ class @ExportFeatures
     language: project.language
     graphics: project.graphics
     libs: project.libs
-    tabs: project.tabs
-    plugins: project.plugins
     libraries: project.libraries
     date_created: project.date_created
     last_modified: project.last_modified
@@ -210,11 +208,6 @@ class @ExportFeatures
             "\n// file: #{f}\nfunction()\n#{s}\nend()\n"
 
       libs = []
-      if project.graphics? and typeof project.graphics == "string"
-        g = project.graphics.toLowerCase()
-        p = @webapp.concatenator.findAltPlayer g
-        if p
-          libs = [].concat p.lib_path # clone the array, will be modified
 
       for optlib in project.libs
         lib = @webapp.concatenator.findOptionalLib(optlib)
@@ -398,18 +391,22 @@ class @ExportFeatures
       queue.add ()=>
         project.getStorage().read "#{user.id}/#{project.id}/sprites/icon.png","binary",(iconData)=>
           return queue.next() if not iconData?
-          Jimp.read iconData,(err,img)=>
-            if not err
-              for size in [16,32,64,180,192,512,1024]
-                do (size)=>
-                  queue.add ()=>
-                    img.clone().resize(size,size,Jimp.RESIZE_NEAREST_NEIGHBOR).getBuffer Jimp.MIME_PNG,(err,buffer)=>
-                      if err
-                        queue.next()
-                      else
-                        zip.file "icon#{size}.png",buffer
-                        queue.next()
+          Jimp.read(iconData)
+          .then (img)=>
+            for size in [16,32,64,180,192,512,1024]
+              do (size)=>
+                queue.add ()=>
+                  img.clone().resize(
+                    w: size
+                    h: size
+                    mode: ResizeStrategy.NEAREST_NEIGHBOR
+                  ).getBuffer(JimpMime.png)
+                  .then (buffer)=>
+                    zip.file "icon#{size}.png",buffer
+                    queue.next()
+                  .catch ()=> queue.next()
             queue.next()
+          .catch ()=> queue.next()
 
       queue.start()
 

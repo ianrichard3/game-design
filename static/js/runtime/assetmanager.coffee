@@ -2,7 +2,6 @@ class @AssetManager
   constructor:(@runtime)->
     @interface =
       loadFont: (font) => @loadFont font
-      loadModel: (path,scene,callback) => @loadModel path,scene,callback
       loadImage: (path,callback) => @loadImage path,callback
       loadJSON: (path,callback) => @loadJSON path,callback
       loadText: (path,callback) => @loadText path,callback
@@ -25,22 +24,6 @@ class @AssetManager
         document.fonts.add(font)
     catch err
       console.error err
-
-  loadModel:(path,scene,callback)->
-    return if not BABYLON?
-    loader =
-      ready: 0
-
-    if @runtime.assets[path]?
-      path = @runtime.assets[path].file
-    else
-      path = path.replace /\//g,"-"
-      path += ".glb"
-
-    BABYLON.SceneLoader.LoadAssetContainer "","assets/#{path}",scene,(container)=>
-      loader.container = container
-      loader.ready = 1
-      callback(container) if callback
 
   loadImage:(path,callback)->
     loader =

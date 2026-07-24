@@ -14,77 +14,7 @@ class @Concatenator
       res.setHeader("Content-Type", "text/javascript")
       res.send @player_js_concat
 
-    @alt_player_base = [
-      '/js/util/canvas2d.js'
-      "/js/languages/microscript/random.js"
-      "/js/runtime/microvm.js"
-      '/js/runtime/runtime.js'
-      '/js/runtime/watcher.js'
-      '/js/runtime/projectinterface.js'
-      '/js/runtime/timemachine.js'
-      '/js/runtime/assetmanager.js'
-      '/js/runtime/keyboard.js'
-      '/js/runtime/gamepad.js'
-      '/js/runtime/sprite.js'
-      '/js/runtime/msimage.js'
-      '/js/runtime/map.js'
-      "/js/runtime/audio/audio.js"
-      "/js/runtime/audio/beeper.js"
-      "/js/runtime/audio/sound.js"
-      "/js/runtime/audio/music.js"
-      '/js/play/player.js'
-      '/js/play/playerclient.js'
-    ]
-
-    @alt_players =
-      m2d:
-        lib: ["/lib/pixijs/v6/pixi.min.js"]
-        lib_path: ["../static/lib/pixijs/v6/pixi.min.js"]
-        scripts: ['/js/runtime/m2d/screen.js','/js/runtime/m2d/m2d.js']
-      m3d:
-        lib: ["/lib/babylonjs/v4/babylon.js","/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-        lib_path: ["../static/lib/babylonjs/v4/babylon.js","../static/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-        scripts: ['/js/runtime/m3d/screen.js','/js/runtime/m3d/m3d.js']
-      pixi:
-        lib: ["/lib/pixijs/v6/pixi.min.js"]
-        lib_path: ["../static/lib/pixijs/v6/pixi.min.js"]
-        scripts: ['/js/runtime/pixi/screen.js','/js/runtime/pixi/pixi.js']
-        versions:
-          pixi_v6:
-            name: "version 6"
-            lib: ["/lib/pixijs/v6/pixi.min.js"]
-            lib_path: ["../static/lib/pixijs/v6/pixi.min.js"]
-            scripts: ['/js/runtime/pixi/screen.js','/js/runtime/pixi/pixi.js']
-            original: true
-          pixi_v7:
-            name: "version 7"
-            lib: ["/lib/pixijs/v7/pixi.min.js"]
-            lib_path: ["../static/lib/pixijs/v7/pixi.min.js"]
-            scripts: ['/js/runtime/pixi/screen.js','/js/runtime/pixi/pixi.js']
-            default: true
-
-      babylon:
-        lib: ["/lib/babylonjs/v4/babylon.js","/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-        lib_path: ["../static/lib/babylonjs/v4/babylon.js","../static/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-        scripts: ['/js/runtime/babylon/screen.js','/js/runtime/babylon/babylon.js']
-        versions:
-          babylon_v4:
-            name: "version 4"
-            lib: ["/lib/babylonjs/v4/babylon.js","/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-            lib_path: ["../static/lib/babylonjs/v4/babylon.js","../static/lib/babylonjs/v4/babylonjs.loaders.min.js"]
-            scripts: ['/js/runtime/babylon/screen.js','/js/runtime/babylon/babylon.js']
-            original: true
-          babylon_v5:
-            name: "version 5"
-            lib: ["/lib/babylonjs/v5/babylon.js","/lib/babylonjs/v5/babylonjs.loaders.min.js"]
-            lib_path: ["../static/lib/babylonjs/v5/babylon.js","../static/lib/babylonjs/v5/babylonjs.loaders.min.js"]
-            scripts: ['/js/runtime/babylon/screen.js','/js/runtime/babylon/babylon.js']
-          babylon_v6:
-            name: "version 6"
-            lib: ["/lib/babylonjs/v6/babylon.js","/lib/babylonjs/v6/babylonjs.loaders.min.js"]
-            lib_path: ["../static/lib/babylonjs/v6/babylon.js","../static/lib/babylonjs/v6/babylonjs.loaders.min.js"]
-            scripts: ['/js/runtime/babylon/screen.js','/js/runtime/babylon/babylon.js']
-            default: true
+    @alt_players = {}
 
     @optional_libs =
       matterjs:
@@ -129,58 +59,8 @@ class @Concatenator
           "/js/languages/microscript/v2/transpiler.js" ]
         lib: []
 
-      python:
-        title: "Python"
-        scripts: ["/js/languages/python/runner.js"]
-        lib:["/lib/brython/brython.js","/lib/brython/brython_stdlib.js"]
-        lib_path:["node_modules/brython/brython.js","node_modules/brython/brython_stdlib.js"]
-
-      lua:
-        title: "Lua"
-        scripts: ["/js/languages/lua/runner.js"]
-        lib:["/lib/fengari/fengari-web.js"]
-        lib_path:["node_modules/fengari-web/dist/fengari-web.js"]
-
-      javascript:
-        title: "JavaScript"
-        scripts: ["/js/languages/javascript/runner.js"]
-        lib: []
-
-      microscript_v1_i:
-        title: "microScript 1.0 - interpreted"
-        scripts: [ "/js/languages/microscript/parser.js",
-          "/js/languages/microscript/program.js",
-          "/js/languages/microscript/token.js",
-          "/js/languages/microscript/tokenizer.js",
-          "/js/languages/microscript/runner_v1_i.js"]
-        lib: []
-
-      microscript_v1_t:
-        title: "microScript 1.0 - transpiled"
-        scripts: [ "/js/languages/microscript/parser.js",
-          "/js/languages/microscript/program.js",
-          "/js/languages/microscript/token.js",
-          "/js/languages/microscript/tokenizer.js",
-          "/js/languages/microscript/jstranspiler.js" ,
-          "/js/languages/microscript/runner_v1_t.js" ]
-        lib: []
-
-
-    for key,value of @alt_players
-      do (key,value)=>
-        @webapp.app.get new RegExp("^\\/#{key}.js$"), (req,res)=>
-          res.setHeader("Content-Type", "text/javascript")
-          res.send @["#{key}_js_concat"]
-        if value.versions
-          for k,v of value.versions
-            do (k,v)=>
-              @webapp.app.get new RegExp("^\\/#{k}.js$"), (req,res)=>
-                res.setHeader("Content-Type", "text/javascript")
-                res.send @["#{k}_js_concat"]
-          
     @webapp_css = [
       "/css/style.css"
-      "/css/home.css"
       "/css/doc.css"
       "/css/code.css"
       "/css/debug.css"
@@ -190,10 +70,8 @@ class @Concatenator
       "/css/synth.css"
       "/css/music.css"
       "/css/maps.css"
-      "/css/publish.css"
       "/css/options.css"
       "/css/git.css"
-      "/css/user.css"
       "/css/media.css"
       "/css/terminal.css"
       "/css/md.css"
@@ -209,9 +87,6 @@ class @Concatenator
       "/js/languages/microscript/v2/tokenizer.js",
 
       "/js/languages/microscript/microscript.js"
-      "/js/languages/python/python.js"
-      "/js/languages/javascript/javascript.js"
-      "/js/languages/lua/lua.js"
 
       "/js/client/client.js"
 
@@ -235,15 +110,7 @@ class @Concatenator
       "/js/editor/libmanager.js"
 
       "/js/options/options.js"
-      "/js/options/tabmanager.js"
-
       "/js/git/gitpanel.js"
-
-      "/js/publish/publish.js"
-
-      "/js/user/usersettings.js"
-      "/js/user/translationapp.js"
-      "/js/user/progress.js"
 
       "/js/spriteeditor/drawtool.js"
       "/js/spriteeditor/spritelist.js"
@@ -261,7 +128,6 @@ class @Concatenator
       "/js/mapeditor/map.js"
 
       "/js/assets/assetsmanager.js"
-      "/js/assets/modelviewer.js"
       "/js/assets/imageviewer.js"
       "/js/assets/textviewer.js"
       "/js/assets/fontviewer.js"
@@ -323,22 +189,11 @@ class @Concatenator
       '/js/play/playerclient.js'
     ]
 
-    for key,value of @alt_players
-      @["#{key}_js"] = @alt_player_base.concat(value.scripts)
-      if value.versions
-        for k,v of value.versions
-          @["#{k}_js"] = @alt_player_base.concat(v.scripts)
-
     @refresh()
 
   refresh:()->
     @concat(@webapp_js,"webapp_js_concat")
     @concat(@player_js,"player_js_concat")
-    for key,value of @alt_players
-      @concat(@["#{key}_js"],"#{key}_js_concat")
-      if value.versions?
-        for k,v of value.versions
-          @concat(@["#{k}_js"],"#{k}_js_concat")
     @concat(@webapp_css,"webapp_css_concat")
 
   getHomeJSFiles:()->
@@ -353,40 +208,13 @@ class @Concatenator
     else
       @webapp_css
 
-  findAltPlayer:(graphics)->
-    if graphics? and typeof graphics == "string"
-      graphics = graphics.toLowerCase()
-      if @alt_players[graphics]?
-        return @alt_players[graphics]
-      else
-        id = graphics.split("_")[0]
-        player = @alt_players[id]
-        if player? and player.versions?
-          return player.versions[graphics]
-    
-    return null
-
-  getPlayerJSFiles:(graphics)->
-    if graphics? and typeof graphics == "string"
-      graphics = graphics.toLowerCase()
-      player = @findAltPlayer(graphics)
-      if player?
-        if @webapp.server.use_cache and @babylon_js_concat?
-          player.lib.concat ["/#{graphics}.js"]
-        else
-          player.lib.concat @["#{graphics}_js"]
-      else
-        if @webapp.server.use_cache and @player_js_concat?
-          ["/play.js"]
-        else
-          @player_js
-
-  getEngineExport:(graphics)->
-    if graphics? and typeof graphics == "string"
-      graphics = graphics.toLowerCase()
-      @["#{graphics}_js_concat"] or @player_js_concat
+  getPlayerJSFiles:()->
+    if @webapp.server.use_cache and @player_js_concat?
+      ["/play.js"]
     else
-      @player_js_concat
+      @player_js
+
+  getEngineExport:()-> @player_js_concat
 
   findOptionalLib:(lib)->
     if typeof lib != "string"

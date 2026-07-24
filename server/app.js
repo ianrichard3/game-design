@@ -6,9 +6,7 @@ Server = require(__dirname + "/server.js");
 
 this.App = (function() {
   function App() {
-    this.config = {
-      realm: "local"
-    };
+    this.config = {};
     fs.readFile("../config.json", (function(_this) {
       return function(err, data) {
         if (!err) {

@@ -12,24 +12,12 @@ this.AssetsManager = (function(superClass) {
     this.list_change_event = "assetlist";
     this.get_item = "getAsset";
     this.use_thumbnails = true;
-    this.extensions = ["glb", "obj", "json", "ttf", "png", "jpg", "txt", "csv", "md", "wasm"];
+    this.extensions = ["json", "ttf", "png", "jpg", "txt", "csv", "md", "wasm"];
     this.update_list = "updateAssetList";
-    this.model_viewer = new ModelViewer(this);
     this.font_viewer = new FontViewer(this);
     this.image_viewer = new ImageViewer(this);
     this.text_viewer = new TextViewer(this);
     this.init();
-    document.querySelector("#capture-asset").addEventListener("click", (function(_this) {
-      return function() {
-        if (_this.asset != null) {
-          switch (_this.asset.ext) {
-            case "glb":
-            case "obj":
-              return _this.model_viewer.updateThumbnail();
-          }
-        }
-      };
-    })(this));
     this.code_snippet = new CodeSnippet(this.app);
   }
 
@@ -96,15 +84,12 @@ this.AssetsManager = (function(superClass) {
       e = ref[j];
       e.style.display = "none";
     }
+    this.viewer = null;
     if (this.asset != null) {
       switch (this.asset.ext) {
         case "ttf":
           this.font_viewer.view(this.asset);
           return this.viewer = this.font_viewer;
-        case "glb":
-        case "obj":
-          this.model_viewer.view(this.asset);
-          return this.viewer = this.model_viewer;
         case "json":
         case "txt":
         case "csv":
@@ -221,10 +206,6 @@ this.AssetsManager = (function(superClass) {
           return "hsl(160,50%,60%)";
         case "md":
           return "hsl(270,50%,60%)";
-        case "glb":
-          return "hsl(300,50%,60%)";
-        case "obj":
-          return "hsl(240,50%,70%)";
         case "wasm":
           return "hsl(60,50%,60%)";
         default:

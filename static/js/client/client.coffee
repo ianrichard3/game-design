@@ -12,27 +12,9 @@ class @Client
         @app.appui.showNotification @app.translator.get msg.error
 
   start:()->
-    @token = localStorage.getItem "token"
-    if window.ms_standalone
-      @token = "---"
-
-    if @token?
-      setTimeout (()=>@app.appui.popMenu()),500
-      @connect()
-    else
-      @app.appui.showLoginButton()
-      setTimeout (()=>@app.appui.popMenu()),500
-      @app.app_state.initState()
-
-  setToken:(@token)->
-    if @token?
-      localStorage.setItem "token",@token
-      date = new Date()
-      date.setTime
-      document.cookie = "token=#{@token};expires=#{new Date(Date.now()+3600000*24*14).toUTCString()};path=/"
-    else
-      localStorage.removeItem "token"
-      document.cookie = "token=#{@token};expires=#{new Date(Date.now()-3600000*24*14).toUTCString()};path=/"
+    @token = "local"
+    setTimeout (()=>@app.appui.popMenu()),500
+    @connect()
 
   checkToken:()->
     return if not @token
@@ -44,13 +26,10 @@ class @Client
       switch msg.name
         when "error"
           console.error msg.error
-          @app.setToken null
-          @app.appui.showLoginButton()
-          @app.app_state.initState()
+          @app.appui.showNotification @app.translator.get("Unable to connect to the local workspace.")
 
         when "token_valid"
           @app.nick = msg.nick
-          @setToken @token    # refresh cookie
           @app.user =
             nick: msg.nick
             email: msg.email

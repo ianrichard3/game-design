@@ -235,19 +235,6 @@ this.Runtime = (function() {
       Sprite: Sprite,
       Map: MicroMap
     };
-    if (window.graphics === "M3D") {
-      global.M3D = M3D;
-      M3D.runtime = this;
-    } else if (window.graphics === "M2D") {
-      global.M2D = M2D;
-      M2D.runtime = this;
-    } else if (window.graphics.toLowerCase().startsWith("pixi")) {
-      global.PIXI = PIXI;
-      PIXI.runtime = this;
-    } else if (window.graphics.toLowerCase().startsWith("babylon")) {
-      global.BABYLON = BABYLON;
-      BABYLON.runtime = this;
-    }
     ref = window.ms_libs;
     for (j = 0, len1 = ref.length; j < len1; j++) {
       lib = ref[j];
@@ -752,10 +739,6 @@ this.Runtime = (function() {
     } catch (error) {
       err = error;
     }
-  };
-
-  Runtime.prototype.getAssetURL = function(asset) {
-    return this.url + "assets/" + asset + ".glb";
   };
 
   Runtime.prototype.getWatcher = function() {

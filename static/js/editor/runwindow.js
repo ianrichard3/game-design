@@ -36,11 +36,6 @@ this.RunWindow = (function() {
         return _this.detach();
       };
     })(this));
-    this.app.appui.setAction("qrcode-button", (function(_this) {
-      return function() {
-        return _this.showQRCode();
-      };
-    })(this));
     this.app.appui.setAction("take-picture-button", (function(_this) {
       return function() {
         return _this.takePicture();
@@ -56,9 +51,6 @@ this.RunWindow = (function() {
         return _this.stepForward();
       };
     })(this));
-    if (window.ms_standalone) {
-      document.getElementById("qrcode-button").style.display = "none";
-    }
     this.app.appui.setAction("clear-button", (function(_this) {
       return function() {
         return _this.clear();
@@ -179,11 +171,7 @@ this.RunWindow = (function() {
   RunWindow.prototype.run = function() {
     var code, device, origin, src, url;
     src = this.app.editor.editor.getValue();
-    origin = "" + (location.origin.replace(".dev", ".io"));
-    if (this.app.project.properties && this.app.project.properties.embedder_policy) {
-      console.info("replacing origin to .dev");
-      origin = origin.replace(".io", ".dev");
-    }
+    origin = location.origin;
     device = document.getElementById("device");
     code = this.app.project["public"] ? "" : this.app.project.code + "/";
     url = origin + "/" + this.app.project.owner.nick + "/" + this.app.project.slug + "/" + code;
@@ -657,54 +645,6 @@ this.RunWindow = (function() {
     this.hideAll();
   };
 
-  RunWindow.prototype.hideQRCode = function() {
-    if (this.qrcode != null) {
-      document.body.removeChild(this.qrcode);
-      return this.qrcode = null;
-    }
-  };
-
-  RunWindow.prototype.showQRCode = function() {
-    var qrcode, url;
-    if (this.app.project != null) {
-      if (this.qrcode != null) {
-        return this.hideQRCode();
-      } else {
-        url = location.origin.replace(".dev", ".io") + "/";
-        url += this.app.project.owner.nick + "/";
-        url += this.app.project.slug + "/";
-        if (!this.app.project["public"]) {
-          url += this.app.project.code + "/";
-        }
-        return qrcode = QRCode.toDataURL(url, {
-          margin: 2,
-          scale: 8
-        }, (function(_this) {
-          return function(err, url) {
-            var img;
-            if ((err == null) && (url != null)) {
-              img = new Image;
-              img.src = url;
-              return img.onload = function() {
-                var b;
-                b = document.getElementById("qrcode-button").getBoundingClientRect();
-                img.style.position = "absolute";
-                img.style.top = (b.y + b.height + 20) + "px";
-                img.style.left = (Math.min(b.x + b.width / 2 - 132, window.innerWidth - img.width - 10)) + "px";
-                img.style["z-index"] = 20;
-                _this.qrcode = img;
-                _this.qrcode.addEventListener("click", function() {
-                  return _this.showQRCode();
-                });
-                return document.body.appendChild(_this.qrcode);
-              };
-            }
-          };
-        })(this));
-      }
-    }
-  };
-
   RunWindow.prototype.takePicture = function() {
     var iframe;
     iframe = document.getElementById("runiframe");
@@ -825,7 +765,6 @@ this.RunWindow = (function() {
   };
 
   RunWindow.prototype.hideAll = function() {
-    this.hideQRCode();
     return this.hidePicture();
   };
 

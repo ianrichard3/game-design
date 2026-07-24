@@ -1,5 +1,3 @@
-UserProgress = require __dirname+"/../gamify/userprogress.js"
-
 class @User
   constructor:(@content,@record)->
     data = @record.get()
@@ -25,8 +23,6 @@ class @User
       @description = data.description or ""
       @last_active = data.last_active or 0
       @updateTier()
-      @progress = new UserProgress @,data
-
       @checkStringField "nick", 50
       @checkStringField "email", 100
       @checkStringField "description", 10000
@@ -149,23 +145,6 @@ class @User
     else
       delete @settings[setting]
     @set "settings",@settings
-
-  createValidationToken:()->
-    map = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    token = ""
-    for i in [1..32] by 1
-      token += map.charAt(Math.floor(Math.random()*map.length))
-    @record.setField "validation_token",token
-    token
-
-  getValidationToken:()->
-    code = @record.getField("validation_token")
-    if not code?
-      code = @createValidationToken()
-    code
-
-  resetValidationToken:()->
-    @record.setField("validation_token")
 
   canPublish:()-> @flags.validated and not @flags.deleted and not @flags.banned
   showPublicStuff:()-> @flags.validated and not @flags.deleted and not @flags.banned and not @flags.censored

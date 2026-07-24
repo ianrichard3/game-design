@@ -14,13 +14,11 @@ class @Project
     @controls = data.controls
     @type = data.type
     @orientation = data.orientation
-    @graphics = data.graphics or "M1"
-    @language = data.language or "microscript_v1_i"
+    @graphics = "M1"
+    @language = "microscript_v2"
     @libs = data.libs or []
     @aspect = data.aspect
     @users = data.users
-    @tabs = data.tabs
-    @plugins = data.plugins
     @libraries = data.libraries
     @properties = data.properties or {}
     @flags = data.flags or {}

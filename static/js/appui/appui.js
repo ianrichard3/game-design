@@ -4,8 +4,8 @@ AppUI = (function() {
   function AppUI(app1) {
     var advanced, fn, fn1, j, k, len, len1, ref, ref1, s;
     this.app = app1;
-    this.sections = ["code", "sprites", "maps", "assets", "sounds", "music", "doc", "git", "options", "publish", "tabs"];
-    this.menuoptions = ["home", "projects", "help", "about", "usersettings"];
+    this.sections = ["code", "sprites", "maps", "assets", "sounds", "music", "doc", "git", "options"];
+    this.menuoptions = ["projects", "help", "about"];
     ref = this.sections;
     fn = (function(_this) {
       return function(s) {
@@ -47,11 +47,7 @@ AppUI = (function() {
         e = document.getElementById("menu-" + s);
         if (e != null) {
           return e.addEventListener("click", function(event) {
-            if (window.ms_standalone && s === "home") {
-              return window.open("https://microstudio.dev", "_blank");
-            } else {
-              return _this.setMainSection(s, true);
-            }
+            return _this.setMainSection(s, true);
           });
         }
       };
@@ -62,28 +58,17 @@ AppUI = (function() {
     }
     this.setAction("logo", (function(_this) {
       return function() {
-        if (window.ms_standalone) {
-          return window.open("https://microstudio.dev", "_blank");
-        } else {
-          return _this.setMainSection("home", true);
-        }
+        return _this.setMainSection("projects", true);
       };
     })(this));
-    if (window.ms_standalone) {
-      document.getElementById("usersetting-block-nickname").style.display = "none";
-      document.getElementById("usersetting-block-email").style.display = "none";
-      document.getElementById("usersetting-block-newsletter").style.display = "none";
-      document.getElementById("usersetting-block-account-type").style.display = "none";
-      document.body.classList.add("standalone");
-    }
-    this.createLoginFunctions();
+    this.createMenuFunctions();
     advanced = document.getElementById("advanced-create-project-options-button");
     this.setAction("create-project-button", (function(_this) {
       return function() {
         _this.show("create-project-overlay");
         _this.focus("create-project-title");
         document.getElementById("createprojectoption-type").value = "app";
-        document.getElementById("createprojectoption-language").value = window.ms_default_project_language || "microscript_v2";
+        document.getElementById("createprojectoption-language").value = "microscript_v2";
         document.getElementById("createprojectoption-graphics").value = "M1";
         document.getElementById("create-project-option-lib-matterjs").checked = false;
         document.getElementById("create-project-option-lib-cannonjs").checked = false;
@@ -123,11 +108,6 @@ AppUI = (function() {
           }
         });
         return input.click();
-      };
-    })(this));
-    this.setAction("home-action-create", (function(_this) {
-      return function() {
-        return _this.setMainSection("projects");
       };
     })(this));
     document.getElementById("create-project-overlay").addEventListener("mousedown", (function(_this) {
@@ -188,15 +168,6 @@ AppUI = (function() {
         }
       };
     })(this));
-    this.get("create_nick").addEventListener("input", (function(_this) {
-      return function() {
-        var value;
-        value = _this.get("create_nick").value;
-        if (value !== RegexLib.fixNick(value)) {
-          return _this.get("create_nick").value = RegexLib.fixNick(value);
-        }
-      };
-    })(this));
     this.startSaveStatus();
     this.last_activity = Date.now();
     document.addEventListener("mousemove", (function(_this) {
@@ -242,13 +213,6 @@ AppUI = (function() {
         }
       };
     })(this));
-    document.querySelector("#home-section").addEventListener("scroll", (function(_this) {
-      return function() {
-        var scroll;
-        scroll = Math.min(60, document.querySelector("#home-section").scrollTop);
-        return document.querySelector("#home-header-background").style.height = scroll + "px";
-      };
-    })(this));
     document.getElementById("myprojects").addEventListener("dragover", (function(_this) {
       return function(event) {
         return event.preventDefault();
@@ -269,40 +233,7 @@ AppUI = (function() {
         return _this.checkActivity();
       };
     })(this)), 10000);
-    this.reboot_date = 1689163200000;
-    this.checkRebootMessage();
   }
-
-  AppUI.prototype.checkRebootMessage = function() {
-    var div, funk;
-    if (this.reboot_date && Date.now() < this.reboot_date + 1000 * 60 * 2) {
-      document.querySelector(".main-container").style.top = "100px";
-      div = document.createElement("div");
-      div.classList.add("meta-message");
-      funk = (function(_this) {
-        return function() {
-          var hours, minutes;
-          minutes = Math.max(0, _this.reboot_date - Date.now()) / 60000;
-          if (minutes >= 120) {
-            hours = Math.floor(minutes / 60);
-            return div.innerHTML = "<i class='fas fa-info-circle'></i> " + _this.app.translator.get("microStudio will be down for server migration on %DATE% at %TIME%. Downtime will last a few minutes.").replace("%DATE%", new Date(_this.reboot_date).toLocaleDateString()).replace("%TIME%", new Date(_this.reboot_date).toLocaleTimeString());
-          } else if (minutes >= 2) {
-            minutes = Math.floor(minutes);
-            return div.innerHTML = "<i class='fas fa-exclamation-circle'></i> " + _this.app.translator.get("Downtime will start in %MINUTES% minutes").replace("%MINUTES%", minutes);
-          } else {
-            return div.innerHTML = "<i class='fas fa-exclamation-circle'></i> " + _this.app.translator.get("Downtime will start immediately");
-          }
-        };
-      })(this);
-      funk();
-      setInterval(((function(_this) {
-        return function() {
-          return funk();
-        };
-      })(this)), 30000);
-      return document.body.appendChild(div);
-    }
-  };
 
   AppUI.prototype.addWarningMessage = function(text, icon, id, dismissable) {
     var close, div, span;
@@ -382,7 +313,6 @@ AppUI = (function() {
     this.show("myprojects");
     this.app.runwindow.projectClosed();
     this.app.debug.projectClosed();
-    this.app.tab_manager.projectClosed();
     this.app.lib_manager.projectClosed();
     this.app.project = null;
     this.project = null;
@@ -413,9 +343,6 @@ AppUI = (function() {
         if (s === section) {
           element.style.display = "block";
           menuitem.classList.add("selected");
-          if (s === "tabs") {
-            _this.app.tab_manager.tabOpened();
-          }
           if (s === "git") {
             _this.app.git_panel.updatePanelVisibility();
           }
@@ -474,28 +401,13 @@ AppUI = (function() {
     return this.app.runwindow.hideAll();
   };
 
-  AppUI.prototype.accountRequired = function(callback) {
-    this.logged_callback = callback;
-    this.setDisplay("login-overlay", "block");
-    this.hide("login-panel");
-    this.hide("create-account-panel");
-    this.hide("forgot-password-panel");
-    return this.show("guest-panel");
-  };
-
   AppUI.prototype.setMainSection = function(section, useraction) {
     var fn, j, len, name, ref, s;
     if (useraction == null) {
       useraction = false;
     }
-    if (section === "projects" && (this.app.user == null)) {
-      this.accountRequired();
-      return;
-    }
     if (useraction) {
-      if (section === "home") {
-        this.app.app_state.pushState("home", this.app.translator.lang === "fr" ? "/fr" : "/");
-      } else if (section === "projects" && (this.project != null) && (this.current_section != null)) {
+      if (section === "projects" && (this.project != null) && (this.current_section != null)) {
         this.app.app_state.pushState("project." + this.project.slug + "." + this.current_section, "/projects/" + this.project.slug + "/" + this.current_section + "/");
       } else {
         name = {
@@ -579,232 +491,8 @@ AppUI = (function() {
     return this.setDisplay(element, "none");
   };
 
-  AppUI.prototype.createLoginFunctions = function() {
-    var fn, j, lang, len, ref, s1, s2, s3, s4;
-    s1 = document.getElementById("switch_to_create_account");
-    s2 = document.getElementById("switch_to_log_in");
-    s3 = document.getElementById("switch_from_forgot_to_login");
-    s4 = document.getElementById("forgot-password-link");
-    s1.addEventListener("click", (function(_this) {
-      return function() {
-        _this.setDisplay("create-account-panel", "block");
-        return document.getElementById("login-panel").style.display = "none";
-      };
-    })(this));
-    s2.addEventListener("click", (function(_this) {
-      return function() {
-        document.getElementById("create-account-panel").style.display = "none";
-        return document.getElementById("login-panel").style.display = "block";
-      };
-    })(this));
-    s3.addEventListener("click", (function(_this) {
-      return function() {
-        document.getElementById("forgot-password-panel").style.display = "none";
-        return document.getElementById("login-panel").style.display = "block";
-      };
-    })(this));
-    s4.addEventListener("click", (function(_this) {
-      return function() {
-        document.getElementById("forgot-password-panel").style.display = "block";
-        return document.getElementById("login-panel").style.display = "none";
-      };
-    })(this));
-    document.getElementById("login-window").addEventListener("click", (function(_this) {
-      return function(event) {
-        return event.stopPropagation();
-      };
-    })(this));
-    document.getElementById("login-overlay").addEventListener("mousedown", (function(_this) {
-      return function(event) {
-        return document.getElementById("login-overlay").style.display = "none";
-      };
-    })(this));
-    document.getElementById("login-window").addEventListener("mousedown", (function(_this) {
-      return function(event) {
-        return event.stopPropagation();
-      };
-    })(this));
-    this.setAction("login-button", (function(_this) {
-      return function() {
-        return _this.showLoginPanel();
-      };
-    })(this));
-    this.setAction("guest-action-login", (function(_this) {
-      return function() {
-        return _this.showLoginPanel();
-      };
-    })(this));
-    this.setAction("guest-action-create", (function(_this) {
-      return function() {
-        return _this.showCreateAccountPanel();
-      };
-    })(this));
-    this.setAction("create-account-button", (function(_this) {
-      return function() {
-        return _this.showCreateAccountPanel();
-      };
-    })(this));
-    this.setAction("create-account-toggle-terms", (function(_this) {
-      return function() {
-        return _this.toggleTerms();
-      };
-    })(this));
-    this.setAction("guest-action-guest", (function(_this) {
-      return function() {
-        _this.app.createGuest();
-        return document.getElementById("login-overlay").style.display = "none";
-      };
-    })(this));
-    document.querySelector(".username").addEventListener("mouseup", (function(_this) {
-      return function(event) {
-        return event.stopPropagation();
-      };
-    })(this));
-    document.querySelector(".username").addEventListener("click", (function(_this) {
-      return function(event) {
-        var c, e, j, len, num, ref;
-        e = document.querySelector(".usermenu");
-        if (window.ms_standalone) {
-          e.classList.add("standalone");
-          e.classList.remove("regular");
-        } else if (_this.app.user.flags.guest || (_this.app.user.email == null)) {
-          e.classList.add("guest");
-          e.classList.remove("regular");
-        } else {
-          e.classList.add("regular");
-          e.classList.remove("guest");
-        }
-        if (e.style.height === "0px") {
-          num = 0;
-          ref = e.childNodes;
-          for (j = 0, len = ref.length; j < len; j++) {
-            c = ref[j];
-            if (c.offsetParent != null) {
-              num += 1;
-            }
-          }
-          e.style.height = (42 * num) + "px";
-          if (!_this.usermenuclose) {
-            return _this.usermenuclose = document.body.addEventListener("mouseup", function(event) {
-              return e.style.height = "0px";
-            });
-          }
-        } else {
-          return e.style.height = "0px";
-        }
-      };
-    })(this));
-    document.querySelector(".usermenu .logout").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.disconnect();
-      };
-    })(this));
-    document.querySelector(".usermenu .settings").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.openUserSettings();
-      };
-    })(this));
-    document.querySelector(".usermenu .profile").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.openUserProfile();
-      };
-    })(this));
-    document.querySelector(".usermenu .progress").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.openUserProgress();
-      };
-    })(this));
-    document.querySelector("#header-progress-summary").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.openUserProgress();
-      };
-    })(this));
-    document.querySelector(".usermenu .create-account").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.showCreateAccountPanel();
-      };
-    })(this));
-    document.querySelector(".usermenu .discard-account").addEventListener("click", (function(_this) {
-      return function(event) {
-        return _this.app.disconnect();
-      };
-    })(this));
-    document.querySelector("#language-setting").addEventListener("mouseup", (function(_this) {
-      return function(event) {
-        return event.stopPropagation();
-      };
-    })(this));
-    this.createMainMenuFunction();
-    document.querySelector("#language-setting").addEventListener("click", (function(_this) {
-      return function(event) {
-        var e;
-        e = document.querySelector("#language-menu");
-        if (!e.classList.contains("language-menu-open")) {
-          e.classList.add("language-menu-open");
-          if (!_this.languagemenuclose) {
-            return _this.languagemenuclose = document.body.addEventListener("mouseup", function(event) {
-              return e.classList.remove("language-menu-open");
-            });
-          }
-        } else {
-          return e.classList.remove("language-menu-open");
-        }
-      };
-    })(this));
-    ref = window.ms_languages;
-    fn = (function(_this) {
-      return function(lang) {
-        if (document.querySelector("#language-choice-" + lang) != null) {
-          document.querySelector("#language-choice-" + lang).addEventListener("click", function(event) {
-            return _this.setLanguage(lang);
-          });
-        }
-        if (document.querySelector("#switch-to-" + lang) != null) {
-          return document.querySelector("#switch-to-" + lang).addEventListener("click", function(event) {
-            event.preventDefault();
-            return _this.setLanguage(lang);
-          });
-        }
-      };
-    })(this);
-    for (j = 0, len = ref.length; j < len; j++) {
-      lang = ref[j];
-      fn(lang);
-    }
-    this.setAction("login-submit", (function(_this) {
-      return function() {
-        return _this.app.login(_this.get("login_nick").value, _this.get("login_password").value);
-      };
-    })(this));
-    this.setAction("create-account-submit", (function(_this) {
-      return function() {
-        if (!_this.get("create-account-tos").checked) {
-          return alert(_this.app.translator.get("You must accept the terms of use in order to create an account."));
-        }
-        return _this.app.createAccount(_this.get("create_nick").value, _this.get("create_email").value, _this.get("create_password").value, _this.get("create-account-newsletter").checked);
-      };
-    })(this));
-    return this.setAction("forgot-submit", (function(_this) {
-      return function() {
-        return _this.app.sendPasswordRecovery(document.getElementById("forgot_email").value);
-      };
-    })(this));
-  };
-
-  AppUI.prototype.showLoginPanel = function() {
-    this.setDisplay("login-overlay", "block");
-    this.show("login-panel");
-    this.hide("create-account-panel");
-    this.hide("forgot-password-panel");
-    return this.hide("guest-panel");
-  };
-
-  AppUI.prototype.showCreateAccountPanel = function() {
-    this.setDisplay("login-overlay", "block");
-    this.hide("login-panel");
-    this.show("create-account-panel");
-    this.hide("forgot-password-panel");
-    return this.hide("guest-panel");
+  AppUI.prototype.createMenuFunctions = function() {
+    return this.createMainMenuFunction();
   };
 
   AppUI.prototype.userConnected = function(nick) {
@@ -812,49 +500,20 @@ AppUI = (function() {
     if (this.nick === nick) {
       return;
     }
-    this.hide("login-button");
-    this.hide("create-account-button");
     this.nick = nick;
-    if (this.app.user.flags.guest || (this.app.user.email == null)) {
-      this.get("user-nick").innerHTML = this.app.translator.get("Guest");
-      document.querySelector(".username i").classList.remove("fa-user");
-      document.querySelector(".username i").classList.add("fa-user-clock");
-      document.querySelector(".username").classList.add("guest");
-    } else {
-      document.querySelector(".username i").classList.add("fa-user");
-      document.querySelector(".username i").classList.remove("fa-user-clock");
-      document.querySelector(".username").classList.remove("guest");
-      this.get("user-nick").innerHTML = nick;
-      if (this.project != null) {
-        this.updateProjectTitle();
-        this.get("project-icon").src = location.origin + ("/" + this.project.owner.nick + "/" + this.project.slug + "/" + this.project.code + "/icon.png");
-      }
-      if (!this.app.user.flags.validated) {
-        this.addWarningMessage(this.app.translator.get("Remember to validate your e-mail address"), "fa-exclamation-circle", "validate_email_" + Math.floor(Date.now() / 1000 / 3600 / 24 / 2), true);
-      }
+    this.get("user-nick").innerHTML = nick;
+    if (this.project != null) {
+      this.updateProjectTitle();
+      this.get("project-icon").src = location.origin + ("/" + this.project.owner.nick + "/" + this.project.slug + "/" + this.project.code + "/icon.png");
     }
     this.get("user-nick").style.display = "inline-block";
-    this.show("login-info");
-    this.hide("login-overlay");
+    this.show("local-user-info");
     this.setMainSection("projects", location.pathname.length < 4);
     if (this.app.user.info.size > this.app.user.info.max_storage) {
       text = this.app.translator.get("Your account is out of space!");
       text += " " + this.app.translator.get("You are using %USED% of the %ALLOWED% you are allowed.").replace("%USED%", this.displayByteSize(this.app.user.info.size)).replace("%ALLOWED%", this.displayByteSize(this.app.user.info.max_storage));
       return this.addWarningMessage(text, void 0, "out_of_storage", false);
     }
-  };
-
-  AppUI.prototype.userDisconnected = function() {
-    this.get("login-button").style.display = "block";
-    this.get("user-nick").innerHTML = "nick";
-    this.hide("login-info");
-    this.nick = null;
-    return this.project = null;
-  };
-
-  AppUI.prototype.showLoginButton = function() {
-    this.get("login-button").style.display = "block";
-    return this.get("create-account-button").style.display = "block";
   };
 
   AppUI.prototype.popMenu = function() {
@@ -965,7 +624,7 @@ AppUI = (function() {
   };
 
   AppUI.prototype.updateProjects = function() {
-    var c, count, element, h2, j, len, list, p, ref;
+    var count, element, h2, j, len, list, p, ref;
     list = this.get("project-list");
     list.innerHTML = "";
     if (this.app.projects == null) {
@@ -988,36 +647,17 @@ AppUI = (function() {
       h2.innerHTML = this.app.translator.get("Your projects will be displayed here.") + "<br />" + this.app.translator.get("Time to create your first project!");
       list.appendChild(h2);
     }
-    if (this.logged_callback != null) {
-      c = this.logged_callback;
-      this.logged_callback = null;
-      c();
-    } else {
-      this.app.app_state.projectsFetched();
-    }
+    this.app.app_state.projectsFetched();
   };
 
   AppUI.prototype.setProject = function(project, useraction) {
-    var j, len, ref, t, tab;
     this.project = project;
     if (useraction == null) {
       useraction = true;
     }
     this.updateProjectTitle();
     this.get("project-icon").src = location.origin + ("/" + this.project.owner.nick + "/" + this.project.slug + "/" + this.project.code + "/icon.png");
-    tab = "code";
-    if ((this.project.tabs != null) && !this.app.tab_manager.isTabActive("code")) {
-      tab = "options";
-      ref = this.sections;
-      for (j = 0, len = ref.length; j < len; j++) {
-        t = ref[j];
-        if (this.app.tab_manager.isTabActive(t)) {
-          tab = t;
-          break;
-        }
-      }
-    }
-    this.setSection(tab, useraction);
+    this.setSection("code", useraction);
     this.show("projectview");
     this.hide("myprojects");
     this.project.addListener(this);
@@ -1111,21 +751,6 @@ AppUI = (function() {
     }
   };
 
-  AppUI.prototype.toggleTerms = function() {
-    if (this.terms_shown) {
-      this.terms_shown = false;
-      return this.get("create-account-terms").style.display = "none";
-    } else {
-      this.terms_shown = true;
-      this.get("create-account-terms").style.display = "block";
-      return this.app.about.load("terms", (function(_this) {
-        return function(text) {
-          return _this.get("create-account-terms").innerHTML = DOMPurify.sanitize(marked(text));
-        };
-      })(this));
-    }
-  };
-
   AppUI.prototype.showNotification = function(text) {
     document.querySelector("#notification-bubble span").innerText = text;
     document.getElementById("notification-container").style.transform = "translateY(0px)";
@@ -1134,17 +759,6 @@ AppUI = (function() {
         return document.getElementById("notification-container").style.transform = "translateY(-150px)";
       };
     })(this)), 5000);
-  };
-
-  AppUI.prototype.setLanguage = function(lang) {
-    var date;
-    if ((document.cookie != null) && document.cookie.indexOf("language=" + lang) >= 0) {
-      return;
-    }
-    date = new Date();
-    date.setTime(date.getTime() + 1000 * 3600 * 24 * 60);
-    document.cookie = "language=" + lang + ";expires=" + (date.toUTCString()) + ";path=/";
-    return window.location = location.origin + (lang !== "en" ? "/" + lang + "/" : "");
   };
 
   AppUI.prototype.displayByteSize = function(size) {

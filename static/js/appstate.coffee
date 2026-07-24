@@ -20,7 +20,7 @@ class @AppState
             @app.appui.backToProjectList()
         @app.appui.setMainSection ((p)->{"documentation":"help"}[p] or p)(history.state.name)
       else if history.state.name == "home"
-        @app.appui.setMainSection "home"
+        @app.appui.setMainSection "projects"
       else if history.state.name.startsWith("project.") and s[1]? and s[2]?
         project = s[1]
         if not @app.project? or @app.project.slug != project
@@ -39,70 +39,29 @@ class @AppState
           @app.appui.setMainSection "help"
         else
           @app.appui.setMainSection "help"
-      else if history.state.name.startsWith("user.") and s[1]?
-        switch s[1]
-          when "settings"
-            @app.appui.setMainSection("usersettings")
-            @app.user_settings.setSection("settings")
-
-          when "profile"
-            @app.appui.setMainSection("usersettings")
-            @app.user_settings.setSection("profile")
-
-          when "progress"
-            @app.appui.setMainSection("usersettings")
-            @app.user_settings.setSection("progress")
-
   stateInitialized:()->
     console.info "state initialized"
     @app.documentation.stateInitialized()
 
   initState:()->
-    if location.pathname.startsWith("/login/")
-      path = if @app.translator.lang != "en" then "/#{@app.translator.lang}/" else "/"
-      history.replaceState {name:"home"},"",path
-      @app.appui.setMainSection("home")
-      @app.appui.showLoginPanel()
+    for p in ["about","documentation"]
+      if location.pathname.startsWith("/#{p}/") or location.pathname == "/#{p}"
+        history.replaceState {name:p},"",location.pathname
+        if p == "documentation"
+          path = location.pathname.split("/")
+          if path[2]
+            @app.documentation.setSection path[2],null,null,false
+
+        @app.appui.setMainSection ((p)=>{"documentation":"help"}[p] or p)(p)
+        @stateInitialized()
+        return
+
+    s = location.pathname.split("/")
+    if location.pathname.startsWith("/projects/") and s[2] and s[3]
+      history.replaceState {name:"project.#{s[2]}.#{s[3]}"},"",location.pathname
     else
-      for p in ["about","documentation"]
-        if location.pathname.startsWith("/#{p}/") or location.pathname == "/#{p}"
-          history.replaceState {name:p},"",location.pathname
-          if p == "documentation"
-            path = location.pathname.split("/")
-            if path[2]
-              @app.documentation.setSection path[2],null,null,false
-
-          @app.appui.setMainSection ((p)=>{"documentation":"help"}[p] or p)(p)
-          @stateInitialized()
-          return
-
-      if @app.user?
-        s = location.pathname.split("/")
-        if location.pathname.startsWith("/projects/") and s[2] and s[3]
-          project = s[2]
-          tab = s[3]
-          history.replaceState {name:"project.#{s[2]}.#{s[3]}"},"",location.pathname
-        else if location.pathname.startsWith("/user/") and s[2]
-          switch s[2]
-            when "settings"
-              @app.appui.setMainSection("usersettings")
-              @app.user_settings.setSection("settings")
-
-            when "profile"
-              @app.appui.setMainSection("usersettings")
-              @app.user_settings.setSection("profile")
-
-            when "progress"
-              @app.appui.setMainSection("usersettings")
-              @app.user_settings.setSection("progress")
-
-        else
-          @app.appui.setMainSection("projects")
-          history.replaceState {name:"projects"},"","/projects/"
-      else
-        path = if @app.translator.lang != "en" then "/#{@app.translator.lang}/" else "/"
-        history.replaceState {name:"home"},"",path
-        @app.appui.setMainSection("home")
+      @app.appui.setMainSection("projects")
+      history.replaceState {name:"projects"},"","/projects/"
 
     @stateInitialized()
 

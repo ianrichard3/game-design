@@ -1,5 +1,3 @@
-var DEFAULT_CODE;
-
 this.Options = (function() {
   function Options(app) {
     var advanced, fn, input, j, len, list;
@@ -35,11 +33,6 @@ this.Options = (function() {
       };
     })(this));
     this.selectInput("projectoption-graphics", (function(_this) {
-      return function(value) {
-        return _this.graphicsChanged(value);
-      };
-    })(this));
-    this.selectInput("projectoption-graphics-version", (function(_this) {
       return function(value) {
         return _this.graphicsChanged(value);
       };
@@ -114,6 +107,14 @@ this.Options = (function() {
         return _this.unlinkLocalFolder();
       };
     })(this));
+    this.app.appui.setAction("project-export-html", (function(_this) {
+      return function() {
+        var path, project;
+        project = _this.app.project;
+        path = "/" + project.owner.nick + "/" + project.slug + "/" + project.code + "/publish/html/?v=" + (Date.now());
+        return window.location = path;
+      };
+    })(this));
     document.getElementById("project-local-folder-input").addEventListener("keyup", (function(_this) {
       return function(event) {
         if (event.keyCode === 13) {
@@ -157,55 +158,17 @@ this.Options = (function() {
     document.getElementById("projectoptions-icon").src = this.app.project.getFullURL() + "icon.png";
     document.getElementById("projectoption-name").value = this.app.project.title;
     this.project_slug_validator.set(this.app.project.slug);
-    document.getElementById("projectoption-slugprefix").innerText = location.origin.replace(".dev", ".io") + ("/" + this.app.project.owner.nick + "/");
+    document.getElementById("projectoption-slugprefix").innerText = location.origin + ("/" + this.app.project.owner.nick + "/");
     document.getElementById("projectoption-orientation").value = this.app.project.orientation;
     document.getElementById("projectoption-aspect").value = this.app.project.aspect;
     document.getElementById("projectoption-type").value = this.app.project.type || "app";
-    document.getElementById("projectoption-graphics").value = (this.app.project.graphics || "M1").split("_")[0];
-    document.getElementById("projectoption-language").value = this.app.project.language || "microscript_v1_i";
+    document.getElementById("projectoption-graphics").value = "M1";
+    document.getElementById("projectoption-language").value = "microscript_v2";
     this.library_tip.style.display = this.app.project.type === "library" ? "block" : "none";
     this.updateOptionalLibs();
     this.updateSecretCodeLine();
     this.updateLocalFolderUI();
-    this.app.project.addListener(this);
-    return this.updateGraphicsVersion();
-  };
-
-  Options.prototype.updateGraphicsVersion = function() {
-    var e, full_id, graphics, id, key, option, ref, ref1, v;
-    e = document.getElementById("projectoption-graphics-version");
-    full_id = this.app.project.graphics || "M1";
-    id = full_id.split("_")[0].toLowerCase();
-    graphics = ms_graphics_options[id];
-    if (graphics) {
-      if (graphics.versions) {
-        e.innerHTML = "";
-        ref = graphics.versions;
-        for (key in ref) {
-          v = ref[key];
-          option = document.createElement("option");
-          option.value = key.toUpperCase();
-          option.innerText = v.name;
-          e.appendChild(option);
-        }
-        if (graphics.versions[full_id.toLowerCase()]) {
-          e.value = full_id;
-        } else {
-          ref1 = graphics.versions;
-          for (key in ref1) {
-            v = ref1[key];
-            if (v.original) {
-              e.value = key.toUpperCase();
-            }
-          }
-        }
-        return e.style.display = "inline-block";
-      } else {
-        return e.style.display = "none";
-      }
-    } else {
-      return e.style.display = "none";
-    }
+    return this.app.project.addListener(this);
   };
 
   Options.prototype.updateOptionalLibs = function() {
@@ -262,7 +225,7 @@ this.Options = (function() {
 
   Options.prototype.updateSecretCodeLine = function() {
     this.project_code_validator.set(this.app.project.code);
-    return document.getElementById("projectoption-codeprefix").innerText = location.origin.replace(".dev", ".io") + ("/" + this.app.project.owner.nick + "/" + this.app.project.slug + "/");
+    return document.getElementById("projectoption-codeprefix").innerText = location.origin + ("/" + this.app.project.owner.nick + "/" + this.app.project.slug + "/");
   };
 
   Options.prototype.updateLocalFolderUI = function() {
@@ -420,29 +383,13 @@ this.Options = (function() {
   };
 
   Options.prototype.graphicsChanged = function(value) {
-    var graphics, id, key, ref, v;
-    id = value.split("_")[0];
-    if (id === value) {
-      graphics = ms_graphics_options[id.toLowerCase()];
-      if (graphics && graphics.versions) {
-        ref = graphics.versions;
-        for (key in ref) {
-          v = ref[key];
-          if (v["default"]) {
-            value = key.toUpperCase();
-            break;
-          }
-        }
-      }
-    }
-    this.app.project.setGraphics(value);
+    this.app.project.setGraphics("M1");
     this.app.debug.updateDebuggerVisibility();
-    this.updateGraphicsVersion();
     return this.app.client.sendRequest({
       name: "set_project_option",
       project: this.app.project.id,
       option: "graphics",
-      value: value
+      value: "M1"
     }, (function(_this) {
       return function(msg) {};
     })(this));
@@ -488,32 +435,7 @@ this.Options = (function() {
   };
 
   Options.prototype.languageChanged = function(value) {
-    if (value !== this.app.project.language) {
-      if (this.app.project.source_list.length === 1 && this.app.project.source_list[0].content.split("\n").length < 20) {
-        if (!this.app.project.language.startsWith("microscript") || !value.startsWith("microscript")) {
-          ConfirmDialog.confirm(this.app.translator.get("Your current code will be overwritten. Do you wish to proceed?"), this.app.translator.get("OK"), this.app.translator.get("Cancel"), ((function(_this) {
-            return function() {
-              _this.app.project.setLanguage(value);
-              _this.app.editor.updateLanguage();
-              _this.app.debug.updateDebuggerVisibility();
-              if (DEFAULT_CODE[value] != null) {
-                _this.app.editor.setCode(DEFAULT_CODE[value]);
-              } else {
-                _this.app.editor.setCode(DEFAULT_CODE["microscript"]);
-              }
-              _this.app.editor.editorContentsChanged();
-              return _this.setLanguage(value);
-            };
-          })(this)), ((function(_this) {
-            return function() {
-              return document.getElementById("projectoption-language").value = _this.app.project.language;
-            };
-          })(this)));
-          return;
-        }
-      }
-      return this.setLanguage(value);
-    }
+    return this.setLanguage("microscript_v2");
   };
 
   Options.prototype.setLanguage = function(value) {
@@ -548,10 +470,3 @@ this.Options = (function() {
   return Options;
 
 })();
-
-DEFAULT_CODE = {
-  python: "def init():\n  pass\n\ndef update():\n  pass\n\ndef draw():\n  pass",
-  javascript: "init = function() {\n}\n\nupdate = function() {\n}\n\ndraw = function() {\n}",
-  lua: "init = function()\nend\n\nupdate = function()\nend\n\ndraw = function()\nend",
-  microscript: "init = function()\nend\n\nupdate = function()\nend\n\ndraw = function()\nend"
-};

@@ -1,8 +1,8 @@
-var JSZip, Jimp, JobQueue, fs, pug;
+var JSZip, Jimp, JimpMime, JobQueue, ResizeStrategy, fs, pug, ref;
 
 fs = require("fs");
 
-Jimp = require("jimp");
+ref = require("jimp"), Jimp = ref.Jimp, JimpMime = ref.JimpMime, ResizeStrategy = ref.ResizeStrategy;
 
 JSZip = require("jszip");
 
@@ -155,8 +155,6 @@ this.ExportFeatures = (function() {
       language: project.language,
       graphics: project.graphics,
       libs: project.libs,
-      tabs: project.tabs,
-      plugins: project.plugins,
       libraries: project.libraries,
       date_created: project.date_created,
       last_modified: project.last_modified,
@@ -235,7 +233,7 @@ this.ExportFeatures = (function() {
   ExportFeatures.prototype.addPublishHTML = function() {
     return this.webapp.app.get(/^\/[^\/\|\?\&\.]+\/[^\/\|\?\&\.]+\/([^\/\|\?\&\.]+\/)?publish\/html\/$/, (function(_this) {
       return function(req, res) {
-        var access, assets_list, fn, fonts, fullsource, g, i, images, j, k, l, len, len1, len2, len3, lib, libs, manager, maps_dict, music_list, n, optlib, p, proglang, project, queue, ref, ref1, ref2, s, sounds_list, user, wrapsource, zip;
+        var access, assets_list, fn, fonts, fullsource, i, images, j, k, l, len, len1, len2, len3, lib, libs, manager, maps_dict, music_list, n, optlib, proglang, project, queue, ref1, ref2, ref3, s, sounds_list, user, wrapsource, zip;
         access = _this.webapp.getProjectAccess(req, res);
         if (access == null) {
           return;
@@ -264,16 +262,9 @@ this.ExportFeatures = (function() {
           };
         }
         libs = [];
-        if ((project.graphics != null) && typeof project.graphics === "string") {
-          g = project.graphics.toLowerCase();
-          p = _this.webapp.concatenator.findAltPlayer(g);
-          if (p) {
-            libs = [].concat(p.lib_path);
-          }
-        }
-        ref = project.libs;
-        for (j = 0, len = ref.length; j < len; j++) {
-          optlib = ref[j];
+        ref1 = project.libs;
+        for (j = 0, len = ref1.length; j < len; j++) {
+          optlib = ref1[j];
           lib = _this.webapp.concatenator.findOptionalLib(optlib);
           if (lib) {
             libs.push(lib.lib_path);
@@ -281,16 +272,16 @@ this.ExportFeatures = (function() {
         }
         proglang = _this.webapp.concatenator.language_engines[project.language];
         if ((proglang != null) && proglang.scripts) {
-          ref1 = proglang.scripts;
-          for (k = 0, len1 = ref1.length; k < len1; k++) {
-            s = ref1[k];
+          ref2 = proglang.scripts;
+          for (k = 0, len1 = ref2.length; k < len1; k++) {
+            s = ref2[k];
             libs.push("../static" + s);
           }
         }
         if ((proglang != null) && (proglang.lib_path != null)) {
-          ref2 = proglang.lib_path;
-          for (l = 0, len2 = ref2.length; l < len2; l++) {
-            s = ref2[l];
+          ref3 = proglang.lib_path;
+          for (l = 0, len2 = ref3.length; l < len2; l++) {
+            s = ref3[l];
             libs.push(s);
           }
         }
@@ -502,10 +493,10 @@ this.ExportFeatures = (function() {
               fn1(src);
             }
             queue.add(function() {
-              var font, len5, q, ref3;
-              ref3 = _this.webapp.fonts.fonts;
-              for (q = 0, len5 = ref3.length; q < len5; q++) {
-                font = ref3[q];
+              var font, len5, p, ref4;
+              ref4 = _this.webapp.fonts.fonts;
+              for (p = 0, len5 = ref4.length; p < len5; p++) {
+                font = ref4[p];
                 if (font === "BitCell" || fullsource.indexOf("\"" + font + "\"") >= 0) {
                   fonts.push(font);
                   (function(font) {
@@ -530,27 +521,29 @@ this.ExportFeatures = (function() {
             if (iconData == null) {
               return queue.next();
             }
-            return Jimp.read(iconData, function(err, img) {
-              var fn1, len4, o, ref3, size;
-              if (!err) {
-                ref3 = [16, 32, 64, 180, 192, 512, 1024];
-                fn1 = function(size) {
-                  return queue.add(function() {
-                    return img.clone().resize(size, size, Jimp.RESIZE_NEAREST_NEIGHBOR).getBuffer(Jimp.MIME_PNG, function(err, buffer) {
-                      if (err) {
-                        return queue.next();
-                      } else {
-                        zip.file("icon" + size + ".png", buffer);
-                        return queue.next();
-                      }
-                    });
+            return Jimp.read(iconData).then(function(img) {
+              var fn1, len4, o, ref4, size;
+              ref4 = [16, 32, 64, 180, 192, 512, 1024];
+              fn1 = function(size) {
+                return queue.add(function() {
+                  return img.clone().resize({
+                    w: size,
+                    h: size,
+                    mode: ResizeStrategy.NEAREST_NEIGHBOR
+                  }).getBuffer(JimpMime.png).then(function(buffer) {
+                    zip.file("icon" + size + ".png", buffer);
+                    return queue.next();
+                  })["catch"](function() {
+                    return queue.next();
                   });
-                };
-                for (o = 0, len4 = ref3.length; o < len4; o++) {
-                  size = ref3[o];
-                  fn1(size);
-                }
+                });
+              };
+              for (o = 0, len4 = ref4.length; o < len4; o++) {
+                size = ref4[o];
+                fn1(size);
               }
+              return queue.next();
+            })["catch"](function() {
               return queue.next();
             });
           });

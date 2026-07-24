@@ -7,14 +7,10 @@ class @RunWindow
     @app.appui.setAction "pause-button-win",()=> @pause()
     @app.appui.setAction "reload-button-win",()=> @reload()
     @app.appui.setAction "detach-button",()=> @detach()
-    @app.appui.setAction "qrcode-button",()=> @showQRCode()
     @app.appui.setAction "take-picture-button",()=> @takePicture()
 
     @app.appui.setAction "step-forward-button",()=> @stepForward()
     @app.appui.setAction "step-forward-button-win",()=> @stepForward()
-
-    if window.ms_standalone
-      document.getElementById("qrcode-button").style.display = "none"
 
     @app.appui.setAction "clear-button",()=> @clear()
     @app.appui.setAction "console-options-button",()=> @toggleConsoleOptions()
@@ -113,11 +109,7 @@ class @RunWindow
   run:()->
     src = @app.editor.editor.getValue()
 
-    origin = "#{location.origin.replace(".dev",".io")}"
-    if @app.project.properties and @app.project.properties.embedder_policy
-      console.info "replacing origin to .dev"
-      origin = origin.replace(".io",".dev")
-      
+    origin = location.origin
     device = document.getElementById("device")
     code = if @app.project.public then "" else "#{@app.project.code}/"
     url = "#{origin}/#{@app.project.owner.nick}/#{@app.project.slug}/#{code}"
@@ -516,37 +508,6 @@ class @RunWindow
     @hideAll()
     return
 
-  hideQRCode:()->
-    if @qrcode?
-      document.body.removeChild @qrcode
-      @qrcode = null
-
-  showQRCode:()->
-    if @app.project?
-      if @qrcode?
-        @hideQRCode()
-      else
-        url = location.origin.replace(".dev",".io")+"/"
-        url += @app.project.owner.nick+"/"
-        url += @app.project.slug+"/"
-        if not @app.project.public
-          url += @app.project.code + "/"
-
-        qrcode = QRCode.toDataURL url,{margin:2,scale:8},(err,url)=>
-          if not err? and url?
-            img = new Image
-            img.src = url
-            img.onload = ()=>
-              b = document.getElementById("qrcode-button").getBoundingClientRect()
-              img.style.position = "absolute"
-              img.style.top = "#{b.y+b.height+20}px"
-              img.style.left = "#{Math.min(b.x+b.width/2-132,window.innerWidth-img.width-10)}px"
-              img.style["z-index"] = 20
-
-              @qrcode = img
-              @qrcode.addEventListener "click",()=>@showQRCode()
-              document.body.appendChild @qrcode
-
   takePicture:()->
     iframe = document.getElementById("runiframe")
     if iframe?
@@ -647,7 +608,6 @@ class @RunWindow
           poster.reload()
 
   hideAll:()->
-    @hideQRCode()
     @hidePicture()
 
   exit:()->

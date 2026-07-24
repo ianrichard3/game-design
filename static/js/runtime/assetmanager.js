@@ -7,11 +7,6 @@ this.AssetManager = (function() {
           return _this.loadFont(font);
         };
       })(this),
-      loadModel: (function(_this) {
-        return function(path, scene, callback) {
-          return _this.loadModel(path, scene, callback);
-        };
-      })(this),
       loadImage: (function(_this) {
         return function(path, callback) {
           return _this.loadImage(path, callback);
@@ -68,31 +63,6 @@ this.AssetManager = (function() {
       err = error;
       return console.error(err);
     }
-  };
-
-  AssetManager.prototype.loadModel = function(path, scene, callback) {
-    var loader;
-    if (typeof BABYLON === "undefined" || BABYLON === null) {
-      return;
-    }
-    loader = {
-      ready: 0
-    };
-    if (this.runtime.assets[path] != null) {
-      path = this.runtime.assets[path].file;
-    } else {
-      path = path.replace(/\//g, "-");
-      path += ".glb";
-    }
-    return BABYLON.SceneLoader.LoadAssetContainer("", "assets/" + path, scene, (function(_this) {
-      return function(container) {
-        loader.container = container;
-        loader.ready = 1;
-        if (callback) {
-          return callback(container);
-        }
-      };
-    })(this));
   };
 
   AssetManager.prototype.loadImage = function(path, callback) {

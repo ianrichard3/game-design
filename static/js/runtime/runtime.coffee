@@ -181,19 +181,6 @@ class @Runtime
       Sprite: Sprite
       Map: MicroMap
 
-    if window.graphics == "M3D"
-      global.M3D = M3D
-      M3D.runtime = @
-    else if window.graphics == "M2D"
-      global.M2D = M2D
-      M2D.runtime = @
-    else if window.graphics.toLowerCase().startsWith "pixi"
-      global.PIXI = PIXI
-      PIXI.runtime = @
-    else if window.graphics.toLowerCase().startsWith "babylon"
-      global.BABYLON = BABYLON
-      BABYLON.runtime = @
-
     for lib in window.ms_libs
       lib = lib.split("_")[0]
       switch lib
@@ -580,9 +567,6 @@ class @Runtime
     catch err
 
     return
-
-  getAssetURL:(asset)->
-    @url+"assets/"+asset+".glb"
 
   getWatcher:()-> @watcher or (@watcher = new Watcher @)
   watch:(variables)-> @getWatcher().watch(variables)

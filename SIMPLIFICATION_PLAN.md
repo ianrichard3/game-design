@@ -7,16 +7,17 @@ feature already shipped: `server/filestorage/folderstorage.coffee`, `folderwatch
 `server/session/gitmanager.coffee`, the Git panel, and the "Local folder" project option),
 while the app's only remaining job is to stay open and hot-reload the running game.
 
-**Verified 2026-07-23:** `cd server && npm run compile` exits cleanly. A short `npm start`
-boot completed initialization without an exception and was then deliberately terminated.
+**Verified 2026-07-23:** `cd server && npm install && npm run compile` and every Pug
+template compile cleanly. Fresh temporary local-server tests covered the single-user
+handshake, project creation/normalization, play route, linked-folder export, Git init/status,
+icon generation, and HTML export.
 
 ## Decisions already locked in (don't re-ask)
 
 - Delete outright, don't feature-flag.
 - Narrow to microScript v2 + M1 graphics only (drop v1, Python, JS, Lua; drop M2D/M3D/PIXI/
   BABYLON).
-- Single local user only — no login/accounts/collaboration. Standalone mode becomes the only
-  mode.
+- Single local user only — no login/accounts/collaboration. Local mode is the only mode.
 - Keep only basic HTML export (drop native app builds, Node-server export, and the
   "make public"/community half of Publish).
 - Drop 3D model preview (the Assets panel's `.glb`/`.obj` preview, which independently
@@ -92,8 +93,7 @@ boot completed initialization without an exception and was then deliberately ter
   public likes/cloning/moderation, tutorial code/routes/markup, and their CSS. The local
   user's own library picker remains available; community libraries and plug-ins do not.
 - **Collaboration**: deleted invite/link persistence and UI, active-user state, invite WS
-  handlers, and public plug-in tabs. `TabManager` now only manages ordinary sidebar tabs;
-  owner-only permission checks remain unchanged.
+  handlers, and public plug-in tabs; owner-only permission checks remain unchanged.
 - **Dead code**: deleted BanIP, DumbApp, and the unused Tag index (including generated JS).
   Removed `express-force-https` and `websocket` and refreshed the lockfile.
 - **Audit follow-up**: deleted the orphaned forum frontend/PWA assets and handlers, stale
@@ -106,103 +106,63 @@ boot completed initialization without an exception and was then deliberately ter
 **Checkpoint passed:** the app compiles and starts without the Explore, Sync, Tutorial, or
 community/project-invite surfaces.
 
-### Phase 2 — Narrow language and graphics surface — NOT STARTED
+### Phase 2 — Narrow language and graphics surface — ✅ DONE
 
-- **Language**: delete `static/js/languages/microscript/{parser,program,token,tokenizer,
-  runner_v1_i,runner_v1_t,jstranspiler}.coffee` (v1, both variants) and the `python/`,
-  `javascript/`, `lua/` directories under `static/js/languages/`. Keep
-  `microscript/random.coffee` (shared PRNG, used by v2 too) and edit — not delete —
-  `microscript/microscript.coffee` (drop its v1 Ace-mode half, keep the v2 half). In
-  `concatenator.coffee`, trim `@language_engines` to just `microscript_v2` and drop the
-  removed languages' script bundling. Change the legacy-project language default from
-  `"microscript_v1_i"` to `"microscript_v2"` in both `content/project.coffee` and
-  `static/js/options/options.coffee` (still has this literal default string — grep for it),
-  and drop the dead `when "python"/"javascript"/"lua"` branches in
-  `static/js/editor/editor.coffee`. `ace-builds` stays (still needed for the v2 editor mode).
-- **Graphics**: delete `static/js/runtime/{m2d,m3d,pixi,babylon}/` (8 files) and their
-  vendored libraries under `static/lib/{pixijs,babylonjs}/`. In `concatenator.coffee`, trim
-  `@alt_players` to empty (M1 is the implicit fallback, not a named entry). Remove the
-  hardcoded `M2D`/`M3D`/`PIXI`/`BABYLON` `<option>` tags from `templates/home.pug` and
-  `templates/projectoptions.pug` (unlike the language select, these are literal, not data-
-  driven). In `static/js/assets/modelviewer.coffee`, remove the dynamic Babylon-v4 injection
-  and 3D preview — `.glb`/`.obj` files fall back to a generic file icon. Leave the now-dead
-  `if window.graphics == "M3D"/...` branch in `runtime.coffee` and the `PIXI`/`BABYLON`
-  guards in `timemachine.coffee`/`assetmanager.coffee` as harmless no-ops.
-- Drop the `brython`/`fengari-web` npm dependencies (Python/Lua browser interpreters).
+- **Language**: removed microScript v1, Python, JavaScript, and Lua sources/runners and their
+  bundle entries. The editor is v2-only; the server creates and normalizes every project to
+  `microscript_v2`, so stale metadata cannot request a deleted runtime. `ace-builds` remains
+  for the v2 editing mode.
+- **Graphics**: removed M2D, M3D, PIXI, Babylon, their vendored libraries, alternate-player
+  concatenation, graphics-version UI, 3D asset preview, and model import support. Projects
+  are normalized to M1 and both project dialogs expose only that choice. Existing `.glb` and
+  `.obj` files are left untouched but have no specialized preview.
+- **Dependencies**: removed `brython` and `fengari-web`, plus their static serving routes and
+  Python-specific play/export templates.
+- **Verification**: `npm run compile` and all Pug template compilation pass; a local boot
+  reached `local server running on port 8090` without missing bundle inputs.
 
-**Checkpoint**: `npm run compile` clean, a project's language/graphics options in Settings
-show only microScript v2 / M1, a game still runs and hot-reloads correctly in the Run window.
+### Phase 3 — Collapse to a single local user, strip remaining platform plumbing — ✅ DONE
 
-### Phase 3 — Collapse to a single local user, strip remaining platform plumbing — NOT STARTED
+- **Accounts — ✅ DONE**: standalone-equivalent single-user mode is now enforced on every
+  boot, regardless of `config.json`'s old hosted settings. The server creates `microstudio`
+  for an empty data directory (or reuses the sole existing user), refuses a multi-user data
+  directory instead of silently deleting data, and listens locally on port 8089 by default.
+  The client always sends the internal `token` bootstrap handshake; the server attaches it to
+  the local user and returns immediately, so it cannot subsequently emit an `invalid token`.
+  Removed all account lifecycle handlers, password-recovery/validation routes, mail stubs,
+  password hashing (`crypto-js`), account rate-limit buckets, login/create-account UI and
+  related CSS, profile/account/progress client panels, and their bundle entries. The app now
+  routes directly to projects. `User`/`Token` records are left readable for existing local
+  data but no longer participate in authentication.
+- **Gamify, comments, and rate limits — ✅ DONE**: deleted their server/client modules,
+  handlers, constructor dependencies, and all obsolete guard clauses. The hosted-user cleaner
+  and process-statistics loop are also gone.
+- **English-only UI — ✅ DONE**: removed the language switcher and seven language JSON files;
+  both translator classes are English identity functions.
+- **Local-only server — ✅ DONE**: deleted TLS/proxy/plugin loading, production configuration,
+  alternate domains, external QR sharing, console routes, profile-image route, and related
+  dependencies. The HTTP/WebSocket listener is fixed to `127.0.0.1` (default port 8089).
+- **Dependencies — ✅ DONE**: removed account/hosting/runtime packages and the duplicate
+  Source Sans package. The remaining direct dependencies were upgraded through `npm audit`,
+  including Jimp 1.6 and DOMPurify 3.4; the icon/export call sites were migrated and tested.
 
-- **Accounts**: make standalone-equivalent single-user mode the *only* mode (fold
-  `config.standalone`'s behavior into the normal boot path in `server.coffee` rather than
-  branching on it). Remove the account-lifecycle WS handlers that no login flow ever reaches
-  (`create_account`, `create_guest`, `login`, `send_password_recovery`, `delete_guest`,
-  `delete_account`, `change_password` — registered twice today, a latent dead registration
-  worth cleaning up regardless —, `send_validation_mail`, `change_email`, `change_nick`,
-  `change_newsletter`, `set_user_profile`) from `session.coffee`. Keep the `token` handshake
-  message (client bootstrap still needs it) and keep `User`/`Token` classes structurally.
-  Client: delete the login/guest/create-account overlay and its wiring in `appui.coffee`
-  (`createLoginFunctions`, `accountRequired`, `userConnected`/`userDisconnected`'s login-
-  specific branches) and `app.coffee` (`createGuest`/`createAccount`/`login`/
-  `sendPasswordRecovery`/`disconnect`), plus `static/js/user/usersettings.coffee` and
-  `translationapp.coffee`. `appstate.coffee`'s router should land directly in the (now
-  permanently open, single) project instead of branching on `@app.user?`.
-- **Gamify/progress**: remove `server/gamify/` and the `User.progress` constructor
-  dependency in `content/user.coffee`, plus the `recordTime`/`incrementLimitedStat`/
-  achievement-unlock calls in `session.coffee`'s surviving handlers. Client:
-  `static/js/user/progress.coffee` and the stats/achievements tab in `templates/user.pug`.
-- **Comments**: remove `content/comments.coffee`, the `Project.comments` constructor
-  dependency, and the `get_project_comments`/`add_project_comment`/etc. handlers in
-  `session.coffee`.
-- **Rate limiting & ban-ip**: remove `server/ratelimiter.coffee` and its ~32 call sites
-  (mechanical guard-clause removal across `session.coffee`, `webapp.coffee`,
-  `projectmanager.coffee`, `server.coffee`). One call site sits in the core file-write path
-  (`projectmanager.coffee`'s `create_file_user` check) — remove the guard, not the
-  surrounding function. `server/banip.coffee` should already be gone (Phase 1).
-- **i18n switcher**: remove the 8 language JSON files down to `en` only, the language-menu
-  UI in `home.pug`/`appui.coffee`, and the `get_language`/`get_translation_list`/
-  `set_translation`/`add_translation` WS handlers. Collapse `Translator.get()` to return its
-  input string unchanged (identity function) rather than deleting the class.
-- **Production/TLS hosting**: remove the `PROD`/`PROXY`/greenlock-express branches in
-  `server.coffee`'s `create()`, `config_prod.json`, and the `greenlock-express`/
-  `greenlock-store-fs`/`le-acme-core` npm dependencies — only the standalone boot path
-  remains.
-- **Plugin system**: remove `loadPlugins`/`loadPlugin` in `server.coffee` and the 4 call
-  sites that consult `@plugins`.
-- Drop the `crypto-js` (password hashing) and `sanitize-html` (forum/bio-only) npm
-  dependencies. Verify `fontsource-source-sans-pro` is truly an unused duplicate of
-  `@fontsource/source-sans-pro` before removing it.
+**Checkpoint passed:** a local boot has no login step; editing, running, folder linking, and
+Git init/status all work in the one local workspace.
 
-**Checkpoint**: `npm run compile` clean, server boots straight into the one local project
-workspace with no login step at all, editing/running/git-panel all still work.
+### Phase 4 — Simplify the UI shell and docs — ✅ DONE
 
-### Phase 4 — Simplify the UI shell and docs — NOT STARTED
+- **UI shell — ✅ DONE**: the marketing home page, publish/tab-manager shells, QR sharing,
+  stale console surfaces, and dead selectors are gone. The visible IDE tabs are Code, Sprites,
+  Maps, Assets, Sounds, Music, Doc, Git, and Settings; HTML export is in Settings.
+- **Docs and styling — ✅ DONE**: removed unreachable help entries and the legacy home,
+  publish, console, server, account, and public-profile styles.
+- **Documentation and dependencies — ✅ DONE**: rewrote `README.md` for the local workflow,
+  regenerated the lockfile with `npm install`, and verified `npm audit --omit=dev` reports
+  zero vulnerabilities.
 
-- Trim `templates/home.pug` down to the actual IDE surface: delete the `home-section`
-  marketing block (~140 lines, purely inline landing-page content), the login/create-project
-  overlay, and the explore/tutorials/usersettings `<div>` sections (already unreachable
-  after Phase 3, this just deletes dead markup). Keep the `run-window` floating panel and
-  the generic `confirm-message`/`notification-container` overlays.
-- Trim `AppUI.@sections`/`@menuoptions` in `appui.coffee` down to the surviving tabs (Code,
-  Sprites, Maps, Sounds, Music, Assets, Doc, Git, Settings) and `App`'s instantiation list in
-  `app.coffee` to match.
-- Drop `static/css/home.css`, `explore.css`, `tutorial.css`, `user.css`, `userpage.css`, and
-  any leftover forum CSS.
-- Rewrite `README.md` to describe the simplified local tool (drop references to the cloud
-  service, community, classroom self-hosting) and confirm `npm start`/`npm run dev` boot
-  instructions are still accurate.
-- Re-audit `server/package.json` once the above lands and run `npm install` to regenerate
-  `package-lock.json` cleanly.
-
-**Checkpoint**: fresh `npm install && npm run dev` boots the app straight into a working
-local project with only Code/Sprites/Maps/Sounds/Music/Assets/Doc/Git/Settings visible; the
-full create → edit (in-browser and via a linked folder) → run → git commit loop passes
-end-to-end (there's a WS-driven integration test pattern used earlier in this project's
-history for exactly this — create project, write files, link to a folder, external-edit
-hot-reload, git init/commit/status — worth rebuilding as a quick script rather than only
-testing by hand).
+**Checkpoint passed:** fresh dependency install, compile, template compilation, and temporary
+server tests pass. The tested flow is create → run → link local folder → Git init/status →
+HTML export.
 
 ## Explicitly out of scope / preserved as-is
 
@@ -215,8 +175,8 @@ by this plan except where a phase above explicitly edits them.
 
 ## Key findings worth remembering (don't re-derive)
 
-- `config.standalone` single-user mode already exists and is a proven, live code path —
-  lean on it rather than building new auth-bypass logic.
+- The bootstrap handshake is intentionally authentication-free because the listener is bound
+  to `127.0.0.1` and every connection maps to the sole local user.
 - The in-IDE Run/preview window is **not self-contained** — it iframes into the same public
   "play" page route (`/user/project/`) and runtime bundle (`/play.js`) that would normally
   serve a published game. That route/runtime must stay. `concatenator.coffee` is dual-

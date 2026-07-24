@@ -1,6 +1,4 @@
-SHA256 = require("crypto-js/sha256")
 ProjectManager = require __dirname+"/projectmanager.js"
-RegexLib = require __dirname+"/../../static/js/util/regexlib.js"
 JSZip = require "jszip"
 
 class @Session
@@ -10,9 +8,6 @@ class @Session
     return @socket.close() if not @content?
     @translator = @content.translator.getTranslator("en")
     @user = null
-    @token = null
-
-    @checkCookie()
     @last_active = Date.now()
 
     @socket.on "message",(msg)=>
@@ -37,30 +32,13 @@ class @Session
     @commands = {}
     @register "ping",(msg)=>
       @send({name:"pong"})
-      @checkUpdates()
 
-    @register "create_account",(msg)=>@createAccount(msg)
-    @register "create_guest",(msg)=>@createGuestAccount(msg)
-    @register "login",(msg)=>@login(msg)
-    @register "send_password_recovery",(msg)=>@sendPasswordRecovery(msg)
     @register "token",(msg)=>@checkToken(msg)
-    @register "delete_guest",(msg)=>@deleteGuest(msg)
-    @register "delete_account",(msg)=>@deleteAccount(msg)
-    @register "change_password",(msg)=>@changePassword(msg)
-
-    @register "send_validation_mail",(msg)=>@sendValidationMail(msg)
-    @register "change_email",(msg)=>@changeEmail(msg)
-    @register "change_nick",(msg)=>@changeNick(msg)
-    @register "change_newsletter",(msg)=>@changeNewsletter(msg)
-    @register "change_experimental",(msg)=>@changeExperimental(msg)
-    @register "set_user_setting",(msg)=>@setUserSetting(msg)
-    @register "set_user_profile",(msg)=>@setUserProfile(msg)
 
     @register "create_project",(msg)=>@createProject(msg)
     @register "import_project",(msg)=>@importProject(msg)
     @register "set_project_option",(msg)=>@setProjectOption(msg)
     @register "set_project_property",(msg)=>@setProjectProperty(msg)
-    @register "set_project_tags",(msg)=>@setProjectTags(msg)
     @register "delete_project",(msg)=>@deleteProject(msg)
     @register "get_project_list",(msg)=>@getProjectList(msg)
     @register "update_code",(msg)=>@updateCode(msg)
@@ -88,64 +66,9 @@ class @Session
 
     @register "clone_project",(msg)=>@cloneProject(msg)
 
-    @register "get_language",(msg)=>@getLanguage(msg)
-    @register "get_translation_list",(msg)=>@getTranslationList(msg)
-    @register "set_translation",(msg)=>@setTranslation(msg)
-    @register "add_translation",(msg)=>@addTranslation(msg)
-
-    @register "get_project_comments",(msg)=>@getProjectComments(msg)
-    @register "add_project_comment",(msg)=>@addProjectComment(msg)
-    @register "delete_project_comment",(msg)=>@deleteProjectComment(msg)
-    @register "edit_project_comment",(msg)=>@editProjectComment(msg)
-
     @register "backup_complete",(msg)=>@backupComplete(msg)
 
     @register "upload_request",(msg)=>@uploadRequest(msg)
-
-    for plugin in @server.plugins
-      if plugin.registerSessionMessages?
-        plugin.registerSessionMessages @
-
-    @reserved_nicks =
-      "admin":true
-      "api":true
-      "static":true
-      "blog":true
-      "news":true
-      "about":true
-      "discord":true
-      "article":true
-
-  checkCookie:()->
-    try
-      cookie = @socket.request.headers.cookie
-      if cookie? and cookie.indexOf("token")>=0
-        cookie = cookie.split("token")[1]
-        cookie = cookie.split("=")[1]
-        if cookie?
-          cookie = cookie.split(";")[0]
-          @token = cookie.trim()
-          @token = @content.findToken @token
-          if @token?
-            @user = @token.user
-            @user.addListener @
-            @send
-              name: "token_valid"
-              nick: @user.nick
-              flags: if not @user.flags.censored then @user.flags else []
-              info: @getUserInfo()
-              settings: @user.settings
-            @user.set "last_active",Date.now()
-            @logActiveUser()
-    catch error
-      console.error error
-
-  logActiveUser:()->
-    return if not @user?
-    if @user.flags.guest
-      @server.stats.unique("active_guests",@user.id)
-    else
-      @server.stats.unique("active_users",@user.id)
 
   register:(name,callback)->
     @commands[name] = callback
@@ -182,9 +105,6 @@ class @Session
     catch err
       console.info err
 
-    @server.stats.inc("websocket_requests")
-    @logActiveUser() if @user?
-
   sendCodeUpdated:(file,code)->
     @send
       name: "code_updated"
@@ -207,217 +127,25 @@ class @Session
       type: type
       file: file
 
-  createGuestAccount:(data)->
-    return if not @server.rate_limiter.accept("create_account_ip",@socket.remoteAddress)
-    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    loop
-      nick = ""
-      for i in [0..9] by 1
-        nick += chars.charAt(Math.floor(Math.random()*chars.length))
-
-      break if not @content.findUserByNick(nick)
-
-    @user = @content.createUser
-      nick: nick
-      flags: { guest: true }
-      language: data.language
-      date_created: Date.now()
-      last_active: Date.now()
-      creation_ip: @socket.remoteAddress
-
-    @user.addListener @
-
-    @send
-      name:"guest_created"
-      nick: nick
-      flags: @user.flags
-      info: @getUserInfo()
-      settings: @user.settings
-      token: @content.createToken(@user).value
-      request_id: data.request_id
-    @logActiveUser()
-
-  deleteGuest:(data)->
-    if @user? and @user.flags.guest
-      @user.delete()
-
-      @send
-        name:"guest_deleted"
-        request_id: data.request_id
-
-  createAccount:(data)->
-    return @sendError(@translator.get("email not specified"),data.request_id) if not data.email?
-    return @sendError(@translator.get("nickname not specified"),data.request_id) if not data.nick?
-    return @sendError(@translator.get("password not specified"),data.request_id) if not data.password?
-
-    return @sendError(@translator.get("email already exists"),data.request_id) if @content.findUserByEmail(data.email)
-    return @sendError(@translator.get("nickname already exists"),data.request_id) if @content.findUserByNick(data.nick)
-    return @sendError(@translator.get("nickname already exists"),data.request_id) if @reserved_nicks[data.nick]
-
-    return @sendError(@translator.get("Incorrect nickname. Use 5 characters minimum, only letters, numbers or _"),data.request_id) if not RegexLib.nick.test(data.nick)
-    return @sendError(@translator.get("Incorrect e-mail address"),data.request_id) if not RegexLib.email.test(data.email)
-    return @sendError(@translator.get("Password too weak"),data.request_id) if data.password.trim().length<6
-
-    return if not @server.rate_limiter.accept("create_account_ip",@socket.remoteAddress)
-
-    salt = ""
-    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    for i in [0..15] by 1
-      salt += chars.charAt(Math.floor(Math.random()*chars.length))
-
-    hash = salt+"|"+SHA256(salt+data.password)
-
-    if @user? and @user.flags.guest
-      @server.content.changeUserNick @user,data.nick
-      @server.content.changeUserEmail @user,data.email
-
-      @user.setFlag("guest",false)
-      @user.setFlag("newsletter",data.newsletter)
-      @user.set("hash",hash)
-      @user.resetValidationToken()
-      @user.updateTier()
-    else
-      @user = @content.createUser
-        nick: data.nick
-        email: data.email
-        flags: { newsletter: data.newsletter }
-        language: data.language
-        hash: hash
-        date_created: Date.now()
-        last_active: Date.now()
-        creation_ip: @socket.remoteAddress
-
-      @user.addListener @
-
-    @send
-      name:"account_created"
-      nick: data.nick
-      email: data.email
-      flags: @user.flags
-      info: @getUserInfo()
-      settings: @user.settings
-      notifications: [@server.content.translator.getTranslator(data.language).get("Account created successfully!")]
-      token: @content.createToken(@user).value
-      request_id: data.request_id
-
-    @sendValidationMail()
-    @logActiveUser()
-
-  login:(data)->
-    return if not data.nick?
-    return if not @server.rate_limiter.accept("login_ip",@socket.remoteAddress)
-    return if not @server.rate_limiter.accept("login_user",data.nick)
-
-    user = @content.findUserByNick data.nick
-    if not user?
-      user = @content.findUserByEmail data.nick
-
-    if user? and user.hash? and not user.flags.deleted
-      hash = user.hash
-      s = hash.split("|")
-      h = SHA256(s[0]+data.password)
-      #console.info "salt: #{s[0]}"
-      #console.info "hash: #{h}"
-      #console.info "recorded hash: #{s[1]}"
-      if h.toString() == s[1]
-        @user = user
-        @user.addListener @
-        @send
-          name:"logged_in"
-          token: @content.createToken(@user).value
-          nick: @user.nick
-          email: @user.email
-          flags: if not @user.flags.censored then @user.flags else {}
-          info: @getUserInfo()
-          settings: @user.settings
-          notifications: @user.notifications
-          request_id: data.request_id
-        @user.notifications = []
-        @logActiveUser()
-      else
-        @sendError "wrong password",data.request_id
-    else
-      @sendError "unknown user",data.request_id
-
-  createHashedPassword:(password)->
-    salt = ""
-    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    for i in [0..15] by 1
-      salt += chars.charAt(Math.floor(Math.random()*chars.length))
-
-    salt+"|"+SHA256(salt+password)
-
-  changePassword:(data)->
-    return if not @user? or not @user.hash?
-    return if not data.current?
-    return if not data.new?
-
-    hash = @user.hash
-    s = hash.split("|")
-    h = SHA256(s[0]+data.current)
-    if h.toString() == s[1]
-      hash = @createHashedPassword data.new
-      @user.set "hash",hash
-      @send
-        request_id: data.request_id
-        name: "password_changed"
-    else
-      @sendError "wrong password",data.request_id
-
   getUserInfo:()->
     return
       size: @user.getTotalSize()
-      early_access: @user.early_access
       max_storage: @user.max_storage
-      description: @user.description
-      stats: @user.progress.exportStats()
-      achievements: @user.progress.exportAchievements()
-
-  sendPasswordRecovery:(data)->
-    if data.email?
-      user = @content.findUserByEmail data.email
-      if user?
-        if @server.rate_limiter.accept("send_mail_user",user.id)
-          @server.content.sendPasswordRecoveryMail(user)
-    @send
-      name: "send_password_recovery"
-      request_id: data.request_id
 
   checkToken:(data)->
-    if @server.config.standalone and @content.user_count == 1
-      @user = @server.content.users[0]
-      @user.addListener @
-      @send
-        name: "token_valid"
-        nick: @user.nick
-        email: @user.email
-        flags: if not @user.flags.censored then @user.flags else {}
-        info: @getUserInfo()
-        settings: @user.settings
-        notifications: @user.notifications
-        request_id: data.request_id
-      @user.notifications = []
-      @user.set "last_active",Date.now()
-      @logActiveUser()
-
-    token = @content.findToken data.token
-    if token? and token.user? and not token.user.flags.deleted
-      @user = token.user
-      @user.addListener @
-      @send
-        name: "token_valid"
-        nick: @user.nick
-        email: @user.email
-        flags: if not @user.flags.censored then @user.flags else {}
-        info: @getUserInfo()
-        settings: @user.settings
-        notifications: @user.notifications
-        request_id: data.request_id
-      @user.notifications = []
-      @user.set "last_active",Date.now()
-      @logActiveUser()
-    else
-      @sendError "invalid token",data.request_id
+    @user = @content.local_user
+    @user.addListener @
+    @send
+      name: "token_valid"
+      nick: @user.nick
+      email: @user.email
+      flags: if not @user.flags.censored then @user.flags else {}
+      info: @getUserInfo()
+      settings: @user.settings
+      notifications: @user.notifications
+      request_id: data.request_id
+    @user.notifications = []
+    @user.set "last_active",Date.now()
 
   send:(data)->
     @socket.send JSON.stringify data
@@ -437,7 +165,6 @@ class @Session
 
   setProjectLocalFolder:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("set_local_folder_user",@user.id)
     return @sendError("no folder",data.request_id) if typeof data.folder != "string"
 
     project = @requireOwnedProject(data)
@@ -454,7 +181,6 @@ class @Session
 
   unlinkProjectLocalFolder:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("set_local_folder_user",@user.id)
 
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
@@ -469,7 +195,6 @@ class @Session
 
   gitStatus:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().status (result)=>
@@ -479,7 +204,6 @@ class @Session
 
   gitInit:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().init (result)=>
@@ -489,7 +213,6 @@ class @Session
 
   gitSetRemote:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().setRemote data.remote_name or "origin",data.url,(result)=>
@@ -499,7 +222,6 @@ class @Session
 
   gitCommit:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().commit data.message,(result)=>
@@ -509,7 +231,6 @@ class @Session
 
   gitPush:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().push (result)=>
@@ -519,7 +240,6 @@ class @Session
 
   gitPull:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().pull (result)=>
@@ -529,7 +249,6 @@ class @Session
 
   gitLog:(data)->
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("access denied",data.request_id) if not @server.rate_limiter.accept("git_op_user",@user.id)
     project = @requireOwnedProject(data)
     return @sendError("access denied",data.request_id) if not project?
     project.manager.getGitManager().log (result)=>
@@ -540,8 +259,6 @@ class @Session
   importProject:(data)->
     return @sendError("Bad request") if not data.request_id?
     return @sendError("not connected",data.request_id) if not @user?
-    return @sendError("Email validation is required",data.request_id) if @server.PROD and not @user.flags.validated
-    return @sendError("Rate limited",data.request_id) if not @server.rate_limiter.accept("import_project_user",@user.id)
     #return @sendError("wrong data") if not data.zip_data? or typeof data.zip_data != "string"
 
     #split = data.zip_data.split(",")
@@ -582,7 +299,6 @@ class @Session
 
   createProject:(data)->
     return @sendError("not connected") if not @user?
-    return if not @server.rate_limiter.accept("create_project_user",@user.id)
 
     @content.createProject @user,data,(project)=>
       @send
@@ -592,7 +308,6 @@ class @Session
 
   cloneProject:(data)->
     return @sendError("not connected") if not @user?
-    return if not @server.rate_limiter.accept("create_project_user",@user.id)
     return @sendError("") if not data.project?
 
     project = @server.content.projects[data.project]
@@ -610,8 +325,6 @@ class @Session
           clone.set "language",project.language
           clone.setGraphics project.graphics
           clone.set "libs",project.libs
-          clone.set "tabs",project.tabs
-          clone.set "plugins",project.plugins
           clone.set "libraries",project.libraries
           clone.set "files",JSON.parse JSON.stringify project.files
           man = @getProjectManager(project)
@@ -649,22 +362,6 @@ class @Session
     if not project.manager?
       new ProjectManager project
     project.manager
-
-  setProjectTags:(data)->
-    return @sendError("not connected") if not @user?
-    return if not data.project?
-
-    project = @user.findProject(data.project)
-    if not project? and @user.flags.admin
-      project = @content.projects[data.project]
-
-    if project? and data.tags?
-      @content.setProjectTags(project,data.tags)
-      @send
-        name:"set_project_tags"
-        id: project.id
-        tags: project.tags
-        request_id: data.request_id
 
   setProjectOption:(data)->
     return @sendError("not connected") if not @user?
@@ -707,14 +404,6 @@ class @Session
 
             project.set "libs",data.value
 
-        when "tabs"
-          if typeof data.value == "object"
-            project.set "tabs",data.value
-
-        when "plugins"
-          if typeof data.value == "object"
-            project.set "plugins",data.value
-
         when "libraries"
           if typeof data.value == "object"
             project.set "libraries",data.value
@@ -735,7 +424,7 @@ class @Session
           project.set "unlisted",if data.value then true else false
 
         when "language"
-          project.set "language",data.value
+          project.setLanguage data.value if typeof data.value == "string"
 
       if project.manager?
         project.manager.propagateOptions @
@@ -790,8 +479,6 @@ class @Session
           graphics: p.graphics
           language: p.language
           libs: p.libs
-          tabs: p.tabs
-          plugins: p.plugins
           libraries: p.libraries
           properties: p.properties
           date_created: p.date_created
@@ -822,25 +509,6 @@ class @Session
     if project?
       @setCurrentProject project
       project.manager.writeProjectFile(@,data)
-
-      if typeof data.file == "string"
-        if data.file.startsWith "ms/"
-          @user.progress.recordTime "time_coding"
-          if data.characters?
-            @user.progress.incrementLimitedStat "characters_typed",data.characters
-          if data.lines?
-            @user.progress.incrementLimitedStat "lines_of_code",data.lines
-          @checkUpdates()
-        else if data.file.startsWith "sprites/"
-          @user.progress.recordTime "time_drawing"
-          if data.pixels?
-            @user.progress.incrementLimitedStat "pixels_drawn",data.pixels
-            @checkUpdates()
-        else if data.file.startsWith "maps/"
-          @user.progress.recordTime "time_mapping"
-          if data.cells?
-            @user.progress.incrementLimitedStat "map_cells_drawn",data.cells
-            @checkUpdates()
 
   renameProjectFile:(data)->
     return @sendError("not connected") if not @user?
@@ -917,219 +585,6 @@ class @Session
               data: res
               request_id: data.request_id
 
-  sendValidationMail:(data)->
-    return @sendError("not connected") if not @user?
-    if @server.rate_limiter.accept("send_mail_user",@user.id)
-      @server.content.sendValidationMail(@user)
-      if data?
-        @send
-          name:"send_validation_mail"
-          request_id: data.request_id
-        return
-
-  changeNick:(data)->
-    return if not @user?
-    return if not data.nick?
-
-    if not RegexLib.nick.test(data.nick)
-      @send
-        name: "error"
-        value: "Incorrect nickname"
-        request_id: data.request_id
-    else
-      if @server.content.findUserByNick(data.nick)? or @reserved_nicks[data.nick]
-        @send
-          name: "error"
-          value: "Nickname not available"
-          request_id: data.request_id
-      else
-        @server.content.changeUserNick @user,data.nick
-        @send
-          name: "change_nick"
-          nick: data.nick
-          request_id: data.request_id
-
-  changeEmail:(data)->
-    return if not @user?
-    return if not data.email?
-
-    if not RegexLib.email.test(data.email)
-      @send
-        name: "error"
-        value: "Incorrect email"
-        request_id: data.request_id
-    else
-      if @server.content.findUserByEmail(data.email)?
-        @send
-          name: "error"
-          value: "E-mail is already used for another account"
-          request_id: data.request_id
-      else
-        @user.setFlag "validated",false
-        @user.resetValidationToken()
-        @server.content.changeUserEmail @user,data.email
-        @sendValidationMail()
-        @send
-          name: "change_email"
-          email: data.email
-          request_id: data.request_id
-
-  changeNewsletter:(data)->
-    return if not @user?
-
-    @user.setFlag "newsletter",data.newsletter
-    @send
-      name: "change_newsletter"
-      newsletter: data.newsletter
-      request_id: data.request_id
-
-  changeExperimental:(data)->
-    return if not @user? or not @user.flags.validated
-
-    @user.setFlag "experimental",data.experimental
-    @send
-      name: "change_experimental"
-      experimental: data.experimental
-      request_id: data.request_id
-
-  setUserSetting:(data)->
-    return if not @user?
-
-    return if not data.setting? or not data.value?
-    @user.setSetting data.setting,data.value
-
-  setUserProfile:(data)->
-    return if not @user?
-    if data.image?
-      if data.image == 0
-        @user.setFlag "profile_image",false
-      else
-        file = "#{@user.id}/profile_image.png"
-        content = new Buffer(data.image,"base64")
-        @server.content.files.write file,content,()=>
-          @user.setFlag "profile_image",true
-          @send
-            name: "set_user_profile"
-            request_id: data.request_id
-        return
-
-    if data.description?
-      @user.set "description",data.description
-
-    @send
-      name: "set_user_profile"
-      request_id: data.request_id
-
-  getLanguage:(msg)->
-    return if not msg.language?
-    lang = @server.content.translator.languages[msg.language]
-    lang = if lang? then lang.export() else "{}"
-
-    @send
-      name: "get_language"
-      language: lang
-      request_id: msg.request_id
-
-  getTranslationList:(msg)->
-    @send
-      name: "get_translation_list"
-      list: @server.content.translator.list
-      request_id: msg.request_id
-
-  setTranslation:(msg)->
-    return if not @user?
-    lang = msg.language
-    return if not @user.flags["translator_"+lang]
-
-    source = msg.source
-    translation = msg.translation
-    if not @server.content.translator.languages[lang]
-      @server.content.translator.createLanguage(lang)
-
-    @server.content.translator.languages[lang].set(@user.id,source,translation)
-
-  addTranslation:(msg)->
-    return if not @user?
-    #return if not @user.flags.admin
-    source = msg.source
-    @server.content.translator.reference source
-
-  getProjectComments:(data)->
-    return if not data.project?
-
-    project = @content.projects[data.project] if data.project?
-    if project? and project.public
-      @send
-        name: "project_comments"
-        request_id: data.request_id
-        comments: project.comments.getAll()
-
-  addProjectComment:(data)->
-    return if not data.project?
-    return if not data.text?
-
-    project = @content.projects[data.project] if data.project?
-    if project? and project.public
-      if @user? and @user.flags.validated and not @user.flags.banned and not @user.flags.censored
-        return if not @server.rate_limiter.accept("post_comment_user",@user.id)
-        project.comments.add(@user,data.text)
-        @send
-          name: "add_project_comment"
-          request_id: data.request_id
-
-  deleteProjectComment:(data)->
-    return if not data.project?
-    return if not data.id?
-
-    project = @content.projects[data.project] if data.project?
-    if project? and project.public
-      if @user?
-        c = project.comments.get(data.id)
-        if c? and (c.user == @user or @user.flags.admin)
-          c.remove()
-          @send
-            name: "delete_project_comment"
-            request_id: data.request_id
-
-  editProjectComment:(data)->
-    return if not data.project?
-    return if not data.id?
-    return if not data.text?
-
-    project = @content.projects[data.project] if data.project?
-    if project? and project.public
-      if @user?
-        c = project.comments.get(data.id)
-        if c? and c.user == @user
-          c.edit(data.text)
-          @send
-            name: "edit_project_comment"
-            request_id: data.request_id
-
-  checkUpdates:()->
-    if @user?
-      if @user.progress.achievements_update != @achievements_update
-        @achievements_update = @user.progress.achievements_update
-        @sendAchievements()
-
-      if @user.progress.stats_update != @stats_update
-        @stats_update = @user.progress.stats_update
-        @sendUserStats()
-
-  sendAchievements:()->
-    return if not @user?
-
-    @send
-      name: "achievements"
-      achievements: @user.progress.exportAchievements()
-
-  sendUserStats:()->
-    return if not @user?
-
-    @send
-      name: "user_stats"
-      stats: @user.progress.exportStats()
-
   showError:(text)->
     @send
       name: "show_error"
@@ -1155,7 +610,6 @@ class @Session
     return @sendError "Bad request" if not msg.size?
     return @sendError "Bad request" if not msg.request_id?
     return @sendError "Bad request" if not msg.request?
-    return @sendError("Rate limited",msg.request_id) if not @server.rate_limiter.accept("file_upload_user",@user.id)
     return @sendError "File size limit exceeded" if msg.size>100000000 # 100 Mb max
 
     @upload_request_id = msg.request_id
@@ -1202,49 +656,5 @@ class @Session
           @send
             name:"next_chunk"
             request_id: id
-
-  checkPassword:(user,password)->
-    if user? and user.hash?
-      hash = user.hash
-      s = hash.split("|")
-      h = SHA256(s[0]+password)
-      if h.toString() == s[1]
-        return true
-
-    return false
-
-  deleteAccount:(msg)->
-    return if not @user
-    return if not msg.password
-    return if not msg.confirm or msg.confirm != "DELETE MY ACCOUNT"
-
-    if not @server.rate_limiter.accept("delete_account",@user.id) then return @sendError "You are rate limited",msg.request_id
-
-    if not @checkPassword(@user,msg.password) then return @sendError "Wrong password",msg.request_id
-
-    # DELETE USER
-
-    console.info "DELETING USER: "+@user.nick
-    @server.stats.inc("account_deletion")
-
-    @user.delete()
-
-    delete @server.content.users_by_nick[@user.nick]
-    delete @server.content.users_by_email[@user.email]
-
-    @user.setFlag("validated",false)
-    @user.setFlag("newsletter",false)
-
-    @user.set("hash","1234567890|1234567890")
-    @user.set("validation_token",""+Math.random()+""+Math.random())
-    @user.set("nick","*deleted"+@user.id)
-    @user.set("email","*deleted"+@user.id+"@microstudio.io") 
-
-    @send
-      name:"user_deleted"
-      request_id: msg.request_id
-
-    @socket.close()
-
 
 module.exports = @Session

@@ -10,16 +10,12 @@ class AppUI
       "doc"
       "git"
       "options"
-      "publish"
-      "tabs"
     ]
 
     @menuoptions = [
-      "home"
       "projects"
       "help"
       "about"
-      "usersettings"
     ]
 
     for s in @sections
@@ -45,27 +41,12 @@ class AppUI
         e = document.getElementById("menu-#{s}")
         if e?
           e.addEventListener "click",(event)=>
-            if window.ms_standalone and s == "home"
-              window.open "https://microstudio.dev","_blank"
-            else
-              @setMainSection(s,true)
+            @setMainSection(s,true)
 
-    @setAction "logo",()=>
-      if window.ms_standalone
-        window.open "https://microstudio.dev","_blank"
-      else
-        @setMainSection("home",true)
-
-    if window.ms_standalone
-      document.getElementById("usersetting-block-nickname").style.display = "none"
-      document.getElementById("usersetting-block-email").style.display = "none"
-      document.getElementById("usersetting-block-newsletter").style.display = "none"
-      document.getElementById("usersetting-block-account-type").style.display = "none"
-
-      document.body.classList.add "standalone"
+    @setAction "logo",()=> @setMainSection("projects",true)
 
     #@setSection("options")
-    @createLoginFunctions()
+    @createMenuFunctions()
 
 
 
@@ -74,7 +55,7 @@ class AppUI
       @show "create-project-overlay"
       @focus "create-project-title"
       document.getElementById("createprojectoption-type").value = "app"
-      document.getElementById("createprojectoption-language").value = window.ms_default_project_language or "microscript_v2"
+      document.getElementById("createprojectoption-language").value = "microscript_v2"
       document.getElementById("createprojectoption-graphics").value = "M1"
       document.getElementById("create-project-option-lib-matterjs").checked = false
       document.getElementById("create-project-option-lib-cannonjs").checked = false
@@ -104,9 +85,6 @@ class AppUI
           @app.importProject f
 
       input.click()
-
-    @setAction "home-action-create",()=>
-      @setMainSection("projects")
 
     document.getElementById("create-project-overlay").addEventListener "mousedown",(event)=>
       if event.target != document.getElementById("create-project-overlay")
@@ -154,11 +132,6 @@ class AppUI
       else
         @backToProjectList(true)
 
-    @get("create_nick").addEventListener "input",()=>
-      value = @get("create_nick").value
-      if value != RegexLib.fixNick(value)
-        @get("create_nick").value = RegexLib.fixNick(value)
-
     @startSaveStatus()
 
     @last_activity = Date.now()
@@ -187,12 +160,6 @@ class AppUI
         for p in list
           p.style.display = "inline-block"
 
-    document.querySelector("#home-section").addEventListener "scroll",()=>
-      scroll = Math.min(60,document.querySelector("#home-section").scrollTop)
-      document.querySelector("#home-header-background").style.height = "#{scroll}px"
-      #document.querySelector("#home-section .part1").style["padding-top"] = "#{160-scroll}px"
-
-
     document.getElementById("myprojects").addEventListener "dragover",(event)=>
       event.preventDefault()
 
@@ -205,29 +172,6 @@ class AppUI
     @createProjectSideBarCollapse()   
 
     setInterval (()=>@checkActivity()),10000
-
-    @reboot_date = 1689163200000
-    @checkRebootMessage()
-
-  checkRebootMessage:()->
-    if @reboot_date and Date.now()<@reboot_date+1000*60*2
-      document.querySelector(".main-container").style.top = "100px"
-      div = document.createElement "div"
-      div.classList.add "meta-message"
-      funk = ()=>
-        minutes = Math.max(0,@reboot_date-Date.now())/60000
-        if minutes>=120
-          hours = Math.floor(minutes/60)
-          div.innerHTML = "<i class='fas fa-info-circle'></i> "+@app.translator.get("microStudio will be down for server migration on %DATE% at %TIME%. Downtime will last a few minutes.").replace("%DATE%",new Date(@reboot_date).toLocaleDateString()).replace("%TIME%",new Date(@reboot_date).toLocaleTimeString())
-        else if minutes>=2
-          minutes = Math.floor(minutes)
-          div.innerHTML = "<i class='fas fa-exclamation-circle'></i> "+@app.translator.get("Downtime will start in %MINUTES% minutes").replace("%MINUTES%",minutes)
-        else
-          div.innerHTML = "<i class='fas fa-exclamation-circle'></i> "+@app.translator.get("Downtime will start immediately")
-
-      funk()
-      setInterval (()=>funk()),30000
-      document.body.appendChild div
 
   addWarningMessage:(text,icon="fa-exclamation-circle",id,dismissable)->
     if dismissable and id
@@ -286,7 +230,6 @@ class AppUI
     @show "myprojects"
     @app.runwindow.projectClosed()
     @app.debug.projectClosed()
-    @app.tab_manager.projectClosed()
     @app.lib_manager.projectClosed()
     @app.project = null
     @project = null
@@ -309,8 +252,6 @@ class AppUI
         if s == section
           element.style.display = "block"
           menuitem.classList.add "selected"
-          if s == "tabs"
-            @app.tab_manager.tabOpened()
           if s == "git"
             @app.git_panel.updatePanelVisibility()
         else
@@ -364,24 +305,9 @@ class AppUI
 
     @app.runwindow.hideAll()
 
-  accountRequired:(callback)->
-    @logged_callback = callback
-
-    @setDisplay "login-overlay","block"
-    @hide "login-panel"
-    @hide "create-account-panel"
-    @hide "forgot-password-panel"
-    @show "guest-panel"
-
   setMainSection:(section,useraction=false)->
-    if section == "projects" and not @app.user?
-      @accountRequired()
-      return
-
     if useraction
-      if section == "home"
-        @app.app_state.pushState "home",if @app.translator.lang == "fr" then "/fr" else "/"
-      else if section == "projects" and @project? and @current_section?
+      if section == "projects" and @project? and @current_section?
         @app.app_state.pushState "project.#{@project.slug}.#{@current_section}","/projects/#{@project.slug}/#{@current_section}/"
       else
         name = {"help":"documentation"}[section] || section
@@ -440,180 +366,21 @@ class AppUI
   hide:(element)->
     @setDisplay element,"none"
 
-  createLoginFunctions:()->
-    s1 = document.getElementById("switch_to_create_account")
-    s2 = document.getElementById("switch_to_log_in")
-    s3 = document.getElementById("switch_from_forgot_to_login")
-    s4 = document.getElementById("forgot-password-link")
-    s1.addEventListener "click",()=>
-      @setDisplay "create-account-panel","block"
-      document.getElementById("login-panel").style.display = "none"
-    s2.addEventListener "click",()=>
-      document.getElementById("create-account-panel").style.display = "none"
-      document.getElementById("login-panel").style.display = "block"
-    s3.addEventListener "click",()=>
-      document.getElementById("forgot-password-panel").style.display = "none"
-      document.getElementById("login-panel").style.display = "block"
-    s4.addEventListener "click",()=>
-      document.getElementById("forgot-password-panel").style.display = "block"
-      document.getElementById("login-panel").style.display = "none"
-
-    document.getElementById("login-window").addEventListener "click",(event)=>
-      event.stopPropagation()
-
-    document.getElementById("login-overlay").addEventListener "mousedown",(event)=>
-      document.getElementById("login-overlay").style.display = "none"
-
-    document.getElementById("login-window").addEventListener "mousedown",(event)=>
-      event.stopPropagation()
-
-    @setAction "login-button",()=>
-      @showLoginPanel()
-
-    @setAction "guest-action-login",()=>
-      @showLoginPanel()
-
-    @setAction "guest-action-create",()=>
-      @showCreateAccountPanel()
-
-    @setAction "create-account-button",()=>
-      @showCreateAccountPanel()
-
-    @setAction "create-account-toggle-terms",()=>
-      @toggleTerms()
-
-    @setAction "guest-action-guest",()=>
-      @app.createGuest()
-      document.getElementById("login-overlay").style.display = "none"
-
-    document.querySelector(".username").addEventListener "mouseup",(event)=>
-      event.stopPropagation()
-
-    document.querySelector(".username").addEventListener "click",(event)=>
-      e = document.querySelector(".usermenu")
-      if window.ms_standalone
-        e.classList.add "standalone"
-        e.classList.remove "regular"
-      else if @app.user.flags.guest or not @app.user.email?
-        e.classList.add "guest"
-        e.classList.remove "regular"
-      else
-        e.classList.add "regular"
-        e.classList.remove "guest"
-
-      if e.style.height == "0px"
-        num = 0
-        for c in e.childNodes
-          if c.offsetParent?
-            num += 1
-        e.style.height = "#{42*num}px"
-        if ! @usermenuclose
-          @usermenuclose = document.body.addEventListener "mouseup",(event)=>
-            e.style.height = "0px"
-      else
-        e.style.height = "0px"
-
-    document.querySelector(".usermenu .logout").addEventListener "click",(event)=>
-      @app.disconnect()
-
-    document.querySelector(".usermenu .settings").addEventListener "click",(event)=>
-      @app.openUserSettings()
-
-    document.querySelector(".usermenu .profile").addEventListener "click",(event)=>
-      @app.openUserProfile()
-
-    document.querySelector(".usermenu .progress").addEventListener "click",(event)=>
-      @app.openUserProgress()
-
-    document.querySelector("#header-progress-summary").addEventListener "click",(event)=>
-      @app.openUserProgress()
-
-    document.querySelector(".usermenu .create-account").addEventListener "click",(event)=>
-      @showCreateAccountPanel()
-
-    document.querySelector(".usermenu .discard-account").addEventListener "click",(event)=>
-      @app.disconnect()
-
-    document.querySelector("#language-setting").addEventListener "mouseup",(event)=>
-      event.stopPropagation()
-
+  createMenuFunctions:()->
     @createMainMenuFunction()
-
-    document.querySelector("#language-setting").addEventListener "click",(event)=>
-      e = document.querySelector("#language-menu")
-      if not e.classList.contains "language-menu-open"
-        e.classList.add "language-menu-open"
-        if ! @languagemenuclose
-          @languagemenuclose = document.body.addEventListener "mouseup",(event)=>
-            e.classList.remove "language-menu-open"
-      else
-        e.classList.remove "language-menu-open"
-
-    for lang in window.ms_languages
-      do (lang)=>
-        if document.querySelector("#language-choice-#{lang}")?
-          document.querySelector("#language-choice-#{lang}").addEventListener "click",(event)=>@setLanguage(lang)
-
-        if document.querySelector("#switch-to-#{lang}")?
-          document.querySelector("#switch-to-#{lang}").addEventListener "click",(event)=>
-            event.preventDefault()
-            @setLanguage(lang)
-
-    @setAction "login-submit",()=>
-      @app.login @get("login_nick").value,@get("login_password").value
-
-    @setAction "create-account-submit",()=>
-      if not @get("create-account-tos").checked
-        return alert(@app.translator.get("You must accept the terms of use in order to create an account."))
-      @app.createAccount @get("create_nick").value,@get("create_email").value,@get("create_password").value,@get("create-account-newsletter").checked
-
-    @setAction "forgot-submit",()=>
-      @app.sendPasswordRecovery(document.getElementById("forgot_email").value)
-
-  showLoginPanel:()->
-    @setDisplay "login-overlay","block"
-    @show "login-panel"
-    @hide "create-account-panel"
-    @hide "forgot-password-panel"
-    @hide "guest-panel"
-
-  showCreateAccountPanel:()->
-    @setDisplay "login-overlay","block"
-    @hide "login-panel"
-    @show "create-account-panel"
-    @hide "forgot-password-panel"
-    @hide "guest-panel"
 
   userConnected:(nick)->
     return if @nick == nick
-    @hide "login-button"
-    @hide "create-account-button"
     @nick = nick
-    if @app.user.flags.guest or not @app.user.email?
-      @get("user-nick").innerHTML = @app.translator.get("Guest")
-      document.querySelector(".username i").classList.remove("fa-user")
-      document.querySelector(".username i").classList.add("fa-user-clock")
-      document.querySelector(".username").classList.add("guest")
-    else
-      document.querySelector(".username i").classList.add("fa-user")
-      document.querySelector(".username i").classList.remove("fa-user-clock")
-      document.querySelector(".username").classList.remove("guest")
-      @get("user-nick").innerHTML = nick
-      if @project?
-        @updateProjectTitle()
-        @get("project-icon").src = location.origin+"/#{@project.owner.nick}/#{@project.slug}/#{@project.code}/icon.png"
-
-      if not @app.user.flags.validated
-        @addWarningMessage( @app.translator.get("Remember to validate your e-mail address"), "fa-exclamation-circle", "validate_email_"+Math.floor( Date.now()/1000/3600/24/2 ), true )
+    @get("user-nick").innerHTML = nick
+    if @project?
+      @updateProjectTitle()
+      @get("project-icon").src = location.origin+"/#{@project.owner.nick}/#{@project.slug}/#{@project.code}/icon.png"
 
     @get("user-nick").style.display = "inline-block"
-    #@show "user-info"
-    @show("login-info")
-    @hide "login-overlay"
+    @show("local-user-info")
 
     @setMainSection "projects",location.pathname.length<4 # home page with language variation => record jump to /projects/
-
-    # @addWarningMessage """Join <a target="_blank" href="https://itch.io/jam/microstudio-mini-jam-2">microStudio mini-jam #2</a>! From October 24/25. More info in the <a target="_blank" href="https://microstudio.dev/community/news/mini-jam-2/235/">Community Forum</a> and <a target="_blank" href="https://discord.gg/BDMqjxd">Discord</a>""","fa-info-circle","mini_jam_2_#{Math.floor(Date.now()/1000/3600/12)}",true
 
     if @app.user.info.size>@app.user.info.max_storage
       text = @app.translator.get "Your account is out of space!"
@@ -624,19 +391,6 @@ class AppUI
     #  @hide "projectview"
       #@get("menu-projects").style.display = "inline-block"
     #@setMainSection "projects"
-
-  userDisconnected:()->
-    @get("login-button").style.display = "block"
-    @get("user-nick").innerHTML = "nick"
-    #@hide "menu-projects"
-    @hide "login-info"
-    @nick = null
-    @project = null
-    #@get("user-info").style.display = "none"
-
-  showLoginButton:()->
-    @get("login-button").style.display = "block"
-    @get("create-account-button").style.display = "block"
 
   popMenu:()->
     document.querySelector("header").style.transform = "translateY(0%)"
@@ -761,27 +515,14 @@ class AppUI
       h2.innerHTML = @app.translator.get("Your projects will be displayed here.")+"<br />"+@app.translator.get("Time to create your first project!")
       list.appendChild h2
 
-    if @logged_callback?
-      c = @logged_callback
-      @logged_callback = null
-      c()
-    else
-      @app.app_state.projectsFetched()
+    @app.app_state.projectsFetched()
 
     return
 
   setProject:(@project,useraction=true)->
     @updateProjectTitle()
     @get("project-icon").src = location.origin+"/#{@project.owner.nick}/#{@project.slug}/#{@project.code}/icon.png"
-    tab = "code"
-    if @project.tabs? and not @app.tab_manager.isTabActive "code"
-      tab = "options"
-      for t in @sections
-        if @app.tab_manager.isTabActive t
-          tab = t
-          break
-      
-    @setSection tab,useraction
+    @setSection "code",useraction
 
     @show "projectview"
     @hide "myprojects"
@@ -851,30 +592,12 @@ class AppUI
           e.style.opacity = 1
           e.style.transform = "scale(1)"
 
-  toggleTerms:()->
-    if @terms_shown
-      @terms_shown = false
-      @get("create-account-terms").style.display = "none"
-    else
-      @terms_shown = true
-      @get("create-account-terms").style.display = "block"
-      @app.about.load "terms",(text)=>
-        @get("create-account-terms").innerHTML = DOMPurify.sanitize marked text
-
   showNotification:(text)->
     document.querySelector("#notification-bubble span").innerText = text
     document.getElementById("notification-container").style.transform = "translateY(0px)"
     setTimeout (()=>
       document.getElementById("notification-container").style.transform = "translateY(-150px)"
       ),5000
-
-  setLanguage:(lang)->
-    return if document.cookie? and document.cookie.indexOf("language=#{lang}")>=0
-    date = new Date()
-    date.setTime(date.getTime()+1000*3600*24*60)
-    document.cookie = "language=#{lang};expires=#{date.toUTCString()};path=/"
-
-    window.location = location.origin+(if lang != "en" then "/#{lang}/" else "")  #+"?t=#{Date.now()}"
 
   displayByteSize:(size)->
     if size<1000

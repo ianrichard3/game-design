@@ -3,8 +3,7 @@ Server = require __dirname+"/server.js"
 
 class @App
   constructor:()->
-    @config =
-      realm: "local"
+    @config = {}
 
     fs.readFile "../config.json",(err,data)=>
       if not err

@@ -20,40 +20,13 @@ this.Client = (function() {
   }
 
   Client.prototype.start = function() {
-    this.token = localStorage.getItem("token");
-    if (window.ms_standalone) {
-      this.token = "---";
-    }
-    if (this.token != null) {
-      setTimeout(((function(_this) {
-        return function() {
-          return _this.app.appui.popMenu();
-        };
-      })(this)), 500);
-      return this.connect();
-    } else {
-      this.app.appui.showLoginButton();
-      setTimeout(((function(_this) {
-        return function() {
-          return _this.app.appui.popMenu();
-        };
-      })(this)), 500);
-      return this.app.app_state.initState();
-    }
-  };
-
-  Client.prototype.setToken = function(token) {
-    var date;
-    this.token = token;
-    if (this.token != null) {
-      localStorage.setItem("token", this.token);
-      date = new Date();
-      date.setTime;
-      return document.cookie = "token=" + this.token + ";expires=" + (new Date(Date.now() + 3600000 * 24 * 14).toUTCString()) + ";path=/";
-    } else {
-      localStorage.removeItem("token");
-      return document.cookie = "token=" + this.token + ";expires=" + (new Date(Date.now() - 3600000 * 24 * 14).toUTCString()) + ";path=/";
-    }
+    this.token = "local";
+    setTimeout(((function(_this) {
+      return function() {
+        return _this.app.appui.popMenu();
+      };
+    })(this)), 500);
+    return this.connect();
   };
 
   Client.prototype.checkToken = function() {
@@ -69,12 +42,9 @@ this.Client = (function() {
         switch (msg.name) {
           case "error":
             console.error(msg.error);
-            _this.app.setToken(null);
-            _this.app.appui.showLoginButton();
-            return _this.app.app_state.initState();
+            return _this.app.appui.showNotification(_this.app.translator.get("Unable to connect to the local workspace."));
           case "token_valid":
             _this.app.nick = msg.nick;
-            _this.setToken(_this.token);
             _this.app.user = {
               nick: msg.nick,
               email: msg.email,

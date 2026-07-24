@@ -7,20 +7,14 @@ class @AssetsManager extends Manager
     @list_change_event = "assetlist"
     @get_item = "getAsset"
     @use_thumbnails = true
-    @extensions = ["glb","obj","json","ttf","png","jpg","txt","csv","md","wasm"]
+    @extensions = ["json","ttf","png","jpg","txt","csv","md","wasm"]
     @update_list = "updateAssetList"
 
-    @model_viewer = new ModelViewer @
     @font_viewer = new FontViewer @
     @image_viewer = new ImageViewer @
     @text_viewer = new TextViewer @
 
     @init()
-
-    document.querySelector("#capture-asset").addEventListener "click",()=>
-      if @asset?
-        switch @asset.ext
-          when "glb","obj" then @model_viewer.updateThumbnail()
 
     @code_snippet = new CodeSnippet @app
 
@@ -68,16 +62,13 @@ class @AssetsManager extends Manager
     parent = document.getElementById "asset-viewer"
     for e in parent.childNodes
       e.style.display = "none"
+    @viewer = null
 
     if @asset?
       switch @asset.ext
         when "ttf"
           @font_viewer.view @asset
           @viewer = @font_viewer
-
-        when "glb","obj"
-          @model_viewer.view @asset
-          @viewer = @model_viewer
 
         when "json","txt","csv","md"
           @text_viewer.view @asset
@@ -172,8 +163,6 @@ class @AssetsManager extends Manager
       when "csv" then "hsl(60,50%,60%)"
       when "txt" then "hsl(160,50%,60%)"
       when "md" then "hsl(270,50%,60%)"
-      when "glb" then "hsl(300,50%,60%)"
-      when "obj" then "hsl(240,50%,70%)"
       when "wasm" then "hsl(60,50%,60%)"
       else "hsl(0,0%,60%)"
 

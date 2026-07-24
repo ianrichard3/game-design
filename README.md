@@ -1,49 +1,53 @@
 ![microStudio](static/img/microstudio_title_image.png)
 
-microStudio is a free, open source game engine online.
-It is also a platform to learn and practise programming.
+# microStudio local
 
-microStudio can be used for free at https://microstudio.dev
+microStudio local is a single-user game engine that runs entirely on your
+computer. Create a project, edit microScript 2 and assets in the browser (or in
+a linked local folder), and run it with live reload.
 
-You can also install your own copy, to work locally or on your own server
-for your team or classroom. You will find instructions below.
+It intentionally has no accounts, cloud hosting, collaboration, community
+features, or alternate language/graphics runtimes. Each installation owns one
+local workspace and uses the M1 graphics API with microScript 2.
 
-# 3 ways to use microStudio
+## Run it
 
-### Online service
-microStudio is available online at https://microstudio.dev ; this is the simpler and the preferred way, you will have access to all the online collaboration features, online publishing and more export features. You don't even need to create an account, you can start working as a guest.
+Install a current Node.js LTS release, then from this repository:
 
-### Standalone application (offline)
-Using the standalone, offline app ; download it in the Releases section of this repository, or on itch.io: https://microstudio.itch.io/microstudio ; helpful if you plan to use it in an environment without connection to internet.
+```sh
+cd server
+npm install
+npm start
+```
 
-### Set up your own microStudio server
-You can clone this repository and start your own microStudio server, for a team or a classroom for example. See instructions below:
+Open [http://127.0.0.1:8089](http://127.0.0.1:8089). The first launch creates
+the local `microstudio` user automatically; there is no login screen.
 
-* Install Node JS (downloads and instructions: https://nodejs.org/en/download/)
-* `git clone https://github.com/pmgl/microstudio.git`
-* `cd microstudio`
-* `git clone https://github.com/pmgl/microstudio.wiki.git`
-* `cd server`
-* `npm install`
-* `npm start`
-* Open browser on `http://localhost:8080`
+For development, use `npm run dev`. It compiles CoffeeScript once, watches the
+source files, and starts the local server.
 
-For active development use:
-* `npm run dev` instead of `npm start`
+## Optional configuration
 
-### Configuration
-To use specific configuration options, create a JSON file `config.json` in the root folder (same folder as this README.md).
-You can find partial examples in this folder as config_local.json and config_prod.json.
+Create `config.json` at the repository root only when you need to change the
+local port or constrain which folders may be linked to projects:
 
-#### Configuration options
+```json
+{
+  "port": 8090,
+  "projects_root": "/absolute/path/to/your/projects"
+}
+```
 
-|option|description|
-|-|-|
-|realm|`"local"` or `"production"`|
-|run_domain|The run domain if you are running this in production ; must include protocol (e.g. `"https://microstudio.io"`)|
-|dev_domain|The dev domain if you are running this in production ; must include protocol (e.g. `"https://microstudio.dev"`)|
-|delegate_relay_service|set to true if you are running a separate relay server for the microStudio Networking features|
-|relay-key|a secret key to use with the delegated relay service|
-|default_project_language|The default language selected when a user creates a project. Can be set to `"microscript_v2"` (default), `"microscript"`, `"javascript"`, `"lua"` or `"python"`|
-|tutorials_root_url|Sets a different URL for loading your own set of tutorials (note: if you use this option, in the toc.md, you must specify a complete URL with domain name for each tutorial)|
-|brython_path|Sets a path to a custom folder for the Brython lib|
+`projects_root` is optional. When set, a linked project folder must be inside
+that directory. Project data otherwise lives locally under `data/` and `files/`.
+
+## Workflow
+
+1. Create a project in the browser.
+2. Use **Settings → Local folder** to link it to a local Git repository if you
+   want to edit files with another tool.
+3. Keep microStudio open to see folder changes and run the project.
+4. Use the **Git** tab for status, commits, pulls, and pushes.
+5. Use **Settings → Export to HTML5** to create a standalone web export.
+
+The repository retains the original microStudio MIT license in `LICENSE.txt`.

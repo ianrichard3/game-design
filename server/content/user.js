@@ -1,7 +1,3 @@
-var UserProgress;
-
-UserProgress = require(__dirname + "/../gamify/userprogress.js");
-
 this.User = (function() {
   function User(content, record) {
     var data;
@@ -33,7 +29,6 @@ this.User = (function() {
       this.description = data.description || "";
       this.last_active = data.last_active || 0;
       this.updateTier();
-      this.progress = new UserProgress(this, data);
       this.checkStringField("nick", 50);
       this.checkStringField("email", 100);
       this.checkStringField("description", 10000);
@@ -192,30 +187,6 @@ this.User = (function() {
       delete this.settings[setting];
     }
     return this.set("settings", this.settings);
-  };
-
-  User.prototype.createValidationToken = function() {
-    var i, j, map, token;
-    map = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    token = "";
-    for (i = j = 1; j <= 32; i = j += 1) {
-      token += map.charAt(Math.floor(Math.random() * map.length));
-    }
-    this.record.setField("validation_token", token);
-    return token;
-  };
-
-  User.prototype.getValidationToken = function() {
-    var code;
-    code = this.record.getField("validation_token");
-    if (code == null) {
-      code = this.createValidationToken();
-    }
-    return code;
-  };
-
-  User.prototype.resetValidationToken = function() {
-    return this.record.setField("validation_token");
   };
 
   User.prototype.canPublish = function() {

@@ -179,156 +179,12 @@ header li .pastille {
   top: 0px;
 }
 
-#language-setting {
-  display: inline-block ;
-  position: relative ;
-  margin-left: 20px ;
-    padding: 8px 0;
-    border-radius: 20px;
-    font-size: 12px;
-    color: #FFF;
-    width:32px;
-    height:32px ;
-    transition: width 0.5s ease ;
-    overflow: hidden ;
-}
-#language-setting i {
-  position: absolute ;
-  font-size: 32px ;
-  color: hsl(200,50%,50%);
-  cursor: pointer;
-}
-#language-setting .lang {
-  position: absolute ;
-  left: 0 ;
-  right: 0 ;
-  text-align:center ;
-  padding: 8px 10px ;
-  cursor: pointer;
-}
-.language-menu-container {
-  display: inline-block ;
-  width: 20px ;
-  height: 20px ;
-  position: relative ;
-}
-.language-menu {
-  box-sizing: border-box ;
-  position: absolute ;
-  display: inline-block ;
-  height: 0px ;
-  overflow: hidden ;
-  top: -20px ;
-  right: 12px ;
-  transition: height 0.5s ease, padding 0.5s ease ;
-  font-size: 12px ;
-  z-index: 10 ;
-  background: hsl(200,25%,20%);
-  border-radius: 5px;
-  padding: 0 8px ;
-}
-.language-menu-open {
-  height: 330px;
-  padding: 8px ;
-  /*box-shadow: 0 0 10px #000;*/
-}
-.language-choice {
-  position: relative ;
-  width: 32px ;
-  height: 40px ;
-}
-.language-choice i {
-  position: absolute ;
-  font-size: 32px ;
-  color: hsl(200,50%,50%);
-  cursor: pointer;
-}
-.language-choice div {
-  position: absolute ;
-  left: 0 ;
-  right: 0 ;
-  text-align:center ;
-  padding: 8px 10px ;
-  cursor: pointer;
-}
-
-#login-button {
-    float: right;
-    /* margin: 0px 0px; */
-    color: #FFF;
-    font-size: 18px;
-    font-family: "Source Sans Pro";
-    padding: 18.5px 0px 18.5px 20px ;
-    /* border-radius: 5px; */
-    cursor: pointer;
-    display: none;
-}
-
-#login-button i {
-  font-size: 18px;
-  margin-right: 5px;
-}
-#create-account-button {
-    float: right;
-    margin: 13px 20px;
-    color: #FFF;
-    font-size: 18px;
-    background: hsl(160,50%,40%);
-    font-family: "Source Sans Pro";
-    padding: 5px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    display: none;
-}
-
-#create-account-button i {
-  font-size: 18px;
-  margin-right: 5px;
-}
-
-#user-info {
-  float: right ;
-  color: #FFF;
-  font-size: 16px;
-  font-family: "Source Sans Pro";
-  display: none ;
-}
-#user-info i {
-  font-size: 16px;
-}
-
-.login-info {
+.local-user-info {
   display: none ;
   float: right ;
   font-size: 18px ;
 }
-#header-progress-summary {
-  float: right ;
-  margin: 5px 15px 0 15px ;
-  text-align: center ;
-  cursor: pointer ;
-  border-radius: 3px ;
-  padding: 5px;
-}
-#header-progress-summary.hidden {
-  display: none ;
-}
-#header-progress-summary:hover {
-  background: rgba(255,255,255,.1);
-}
-#header-progress-level {
-  font-size: 14px ;
-  font-weight: bold ;
-}
-#header-progress-xp {
-  font-size: 10px ;
-  width: 150px ;
-  background: hsl(20,50%,40%);
-  border-radius: 3px ;
-  padding: 1px 10px ;
-}
-
-.login-info i {
+.local-user-info i {
   margin: 0 2px ;
 }
 
@@ -791,7 +647,6 @@ padding-left: 2px ;
 .sidemenu li.selected .fa-book { color: hsla(225,100%,70%,1);}
 .sidemenu li.selected .fa-sync { color: hsla(270,100%,70%,1);}
 .sidemenu li.selected .fa-cogs { color: hsla(315,100%,70%,1);}
-.sidemenu li.selected .fa-upload { color: hsla(0,100%,70%,1);}
 
 .sidemenu li#menuitem-code.selected { width: 56px ; border-left: solid 4px hsl(0,100%,70%) ; }
 .sidemenu li#menuitem-sprites.selected { width: 56px ; border-left: solid 4px hsl(45,50%,50%) ; }
@@ -802,7 +657,6 @@ padding-left: 2px ;
 .sidemenu li#menuitem-doc.selected { width: 56px ; border-left: solid 4px hsl(225,50%,50%) ; }
 .sidemenu li#menuitem-sync.selected { width: 56px ; border-left: solid 4px hsl(270,50%,50%) ; }
 .sidemenu li#menuitem-options.selected { width: 56px ; border-left: solid 4px hsl(315,50%,50%) ; }
-.sidemenu li#menuitem-publish.selected { width: 56px ; border-left: solid 4px hsl(0,50%,50%) ; }
 
 .sidemenu li:hover {
   background-color: hsl(200,30%,30%) ;
@@ -818,13 +672,6 @@ padding-left: 2px ;
 .sidemenu li i {
   font-size: 20px;
   padding-bottom: 5px;
-}
-
-#menuitem-tabs {
-  margin: 5px ;
-  border-radius: 10px ;
-  padding: 10px 10px 5px 10px ;
-  width: 30px ;
 }
 
 .section-container {
@@ -1007,77 +854,6 @@ padding-left: 2px ;
 .window-wrapper {
   text-align: center ;
 }
-#login-window {
-  margin-top: 100px ;
-  padding: 20px ;
-  border-radius: 10px;
-  background: #DDD;
-  color: #222;
-  display: inline-block ;
-  text-align: center ;
-  margin-bottom:100px;
-}
-#login-window h2 {
-  margin-top: 0px;
-}
-#login-window p {
-  margin: 0 ;
-  padding: 0 ;
-}
-#create-account-panel {
-  display: none ;
-}
-#forgot-password-panel {
-  display: none ;
-}
-#login-window input {
-    font-size: 18px;
-    padding: 5px;
-    margin-bottom: 20px;
-}
-#login-window button {
-    font-size: 18px;
-    background: hsl(200,50%,40%);
-    border-radius: 5px;
-    padding: 10px 20px;
-    color: #FFF;
-}
-
-#login-window div.button {
-  background: hsl(160,50%,40%);
-  border-radius: 10px ;
-  padding: 20px ;
-  color: #FFF;
-  margin: 20px 0 0 0;
-  cursor: pointer ;
-  width: 300px ;
-}
-#login-window div.button i {
-  font-size: 40px ;
-}
-#create-account-terms {
-  max-width: 600px ;
-  padding: 20px ;
-  background: rgba(255,255,255,.5);
-  border-radius: 10px ;
-  margin: 20px 0 ;
-  text-align: left ;
-  font-size: 14px ;
-  color: #000 ;
-  display: none ;
-}
-#create-account-terms p {
-  margin-bottom: 20px ;
-}
-#create-account-terms h2 {
-  font-size: 18px ;
-  margin: 10px 0;
-}
-#create-account-terms img {
-  width: 110px ;
-  vertical-align: middle ;
-  filter: drop-shadow(0px 0px 3px #000);
-}
 #create-project-button {
   display: inline-block ;
   margin: 0 20px 0 40px ;
@@ -1201,42 +977,6 @@ a.project-box {
 
 .ignoreMouseEvents {
   pointer-events: none ;
-}
-
-.usermenu {
-  position: fixed ;
-  top: 60px ;
-  right: 0px ;
-  height: 0px ;
-  overflow: hidden ;
-  z-index: 2 ;
-  background: hsl(200,50%,20%);
-  transition: height 0.5s ease ;
-}
-.usermenu i {
-  margin-right: 10px ;
-}
-.usermenu div {
-  padding: 10px 20px ;
-  font-size: 16px ;
-  border-top: solid 2px rgba(255,255,255,.1);
-  cursor: pointer ;
-}
-.usermenu div:hover {
-  background: rgba(255,255,255,.2);
-}
-.usermenu.regular .create-account, .usermenu.regular .discard-account {
-  display: none ;
-}
-.usermenu.guest .settings, .usermenu.guest .logout, .usermenu.guest .profile {
-  display: none ;
-}
-.usermenu.standalone .settings,.usermenu.standalone .profile,.usermenu.standalone .logout,.usermenu.standalone .create-account,.usermenu.standalone .discard-account {
-  display: none ;
-}
-
-.usermenu .discard-account {
-  background: hsl(0,50%,40%);
 }
 
 .help-section {
@@ -1863,4 +1603,3 @@ img.pixelated {
   margin-right: 4px ;
   vertical-align: baseline ;
 }
-

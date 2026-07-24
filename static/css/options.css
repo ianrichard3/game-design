@@ -318,10 +318,3 @@
 .projectoption .button i {
   margin-right: 10px ;
 }
-.plugins-standalone-info {
-  display: none ;
-}
-
-body.standalone .plugins-standalone-info {
-  display: block ;
-}
