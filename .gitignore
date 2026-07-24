@@ -9,7 +9,7 @@ data/
 .DS_Store
 .vs/
 microstudio.wiki/
-ignore/
+ignored-projects/
 logs/
 server/blocked_ips.txt
 server/blocked_ips.bak
